@@ -4,7 +4,7 @@ options {
     tokenVocab = WappaLexer;
 }
 
-compilationUnit: expression*;
+start: (functionDeclaration)*;
 
 literal:
     integerLiteral
@@ -23,25 +23,35 @@ floatLiteral: FLOAT_LITERAL | HEX_FLOAT_LITERAL;
 
 expressionList: expression (',' expression)*;
 
+functionDeclaration:
+    FUN typeOrVoid IDENTIFIER ('(' parameterList? ')')? block;
+
+parameterList:
+    IDENTIFIER ':' typeOrVoid (',' IDENTIFIER ':' typeOrVoid)*;
+
+block: '{' statement* '}';
+
 functionCall:
     IDENTIFIER '(' expressionList? ')'
-    | SELF '(' expressionList? ')'
-    | SUPER '(' expressionList? ')';
+    | 'self' '(' expressionList? ')'
+    | 'super' '(' expressionList? ')';
+
+statement: expression ';';
 
 expression:
     primary
     | expression bop = '.' (
         IDENTIFIER
         | functionCall
-        | SELF
+        | 'self'
         // | NEW nonWildcardTypeArguments? innerCreator
-        | SUPER superSuffix
+        | 'super' superSuffix
         // | explicitGenericInvocation
     )
-    | expression LBRACK expression RBRACK
+    | expression '[' expression ']'
     | functionCall
-    | NEW IDENTIFIER arguments
-    | LPAREN IDENTIFIER RPAREN expression
+    | 'new' typeName arguments
+    | '(' typeName ')' expression
     | expression postfix = ('++' | '--')
     | prefix = ('+' | '-' | '++' | '--') expression
     | prefix = ('~' | '!') expression
@@ -75,14 +85,15 @@ expression:
 
 primary:
     LPAREN expression RPAREN
-    | SELF
-    | SUPER
+    | 'self'
+    | 'super'
     | literal
-    | IDENTIFIER
-    | (IDENTIFIER | VOID) '.' CLASS;
-
-createdName: IDENTIFIER ('.' IDENTIFIER)*;
+    | 'let'? IDENTIFIER;
 
 superSuffix: arguments | '.' IDENTIFIER arguments?;
 
 arguments: '(' expressionList? ')';
+
+typeOrVoid: (typeName | 'void');
+
+typeName: IDENTIFIER;
