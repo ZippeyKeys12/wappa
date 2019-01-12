@@ -4,7 +4,11 @@ options {
     tokenVocab = WappaLexer;
 }
 
-start: (functionDeclaration)*;
+start: (
+        classDeclaration
+        | objectDeclaration
+        | functionDeclaration
+    )*;
 
 literal:
     integerLiteral
@@ -23,18 +27,32 @@ floatLiteral: FLOAT_LITERAL | HEX_FLOAT_LITERAL;
 
 expressionList: expression (',' expression)*;
 
+classDeclaration: CLASS IDENTIFIER classOrObjectBlock;
+
+objectDeclaration: OBJECT IDENTIFIER classOrObjectBlock;
+
+classOrObjectBlock:
+    '{' (fieldDeclaration | functionDeclaration)* '}';
+
 functionDeclaration:
-    FUN typeOrVoid IDENTIFIER ('(' parameterList? ')')? block;
+    FUN IDENTIFIER ('(' parameterList? ')')? ('->' typeOrVoid)? block;
 
 parameterList:
-    IDENTIFIER ':' typeOrVoid (',' IDENTIFIER ':' typeOrVoid)*;
+    typeOrVoid IDENTIFIER (',' typeOrVoid IDENTIFIER)*;
 
 block: '{' statement* '}';
 
 functionCall:
     IDENTIFIER '(' expressionList? ')'
-    | 'self' '(' expressionList? ')'
-    | 'super' '(' expressionList? ')';
+    | SELF '(' expressionList? ')'
+    | SUPER '(' expressionList? ')';
+
+fieldDeclaration:
+    variableDeclaratorId ':' typeName ('=' variableInitializer)? ';';
+
+variableDeclaratorId: IDENTIFIER;
+
+variableInitializer: expression;
 
 statement: expression ';';
 
@@ -43,14 +61,14 @@ expression:
     | expression bop = '.' (
         IDENTIFIER
         | functionCall
-        | 'self'
+        | SELF
         // | NEW nonWildcardTypeArguments? innerCreator
-        | 'super' superSuffix
+        | SUPER superSuffix
         // | explicitGenericInvocation
     )
     | expression '[' expression ']'
     | functionCall
-    | 'new' typeName arguments
+    | NEW typeName arguments
     | '(' typeName ')' expression
     | expression postfix = ('++' | '--')
     | prefix = ('+' | '-' | '++' | '--') expression
@@ -85,15 +103,15 @@ expression:
 
 primary:
     LPAREN expression RPAREN
-    | 'self'
-    | 'super'
+    | SELF
+    | SUPER
     | literal
-    | 'let'? IDENTIFIER;
+    | LET? IDENTIFIER;
 
 superSuffix: arguments | '.' IDENTIFIER arguments?;
 
 arguments: '(' expressionList? ')';
 
-typeOrVoid: (typeName | 'void');
+typeOrVoid: (typeName | VOID);
 
 typeName: IDENTIFIER;
