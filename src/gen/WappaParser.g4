@@ -47,7 +47,7 @@ constructorParameter:
 objectDeclaration: OBJECT IDENTIFIER (classOrObjectBlock | ';');
 
 classOrObjectBlock:
-    '{' (variableDeclaration ';' | functionDeclaration)* '}';
+    '{' (variableDeclaration | functionDeclaration)* '}';
 
 functionDeclaration:
     FUN IDENTIFIER ('(' parameterList? ')')? ('->' typeOrVoid)? block;
@@ -57,32 +57,45 @@ parameterList:
         ',' IDENTIFIER (':' typeOrVoid)?
     )*;
 
-block: '{' blockStatement* '}';
-
-blockStatement: variableDeclaration ';' | statement;
+block: '{' (variableDeclaration | statement)* '}';
 
 functionCall:
     IDENTIFIER '(' expressionList? ')'
     | SELF '(' expressionList? ')'
     | SUPER '(' expressionList? ')';
 
+variableDeclarations:
+    variableDeclaration (',' variableDeclaration)*;
+
 variableDeclaration:
-    LET variableDeclaratorId (':' typeName)? (
-        '=' variableInitializer
-    )?
-    | VAR variableDeclaratorId (
-        ':' typeName
-        | '=' variableInitializer
-    );
+    (
+        LET variableDeclaratorId (':' typeName)? (
+            '=' variableInitializer
+        )?
+        | VAR variableDeclaratorId (
+            ':' typeName
+            | '=' variableInitializer
+        )
+    ) ';';
 
 variableDeclaratorId: IDENTIFIER;
 
 variableInitializer: expression;
 
 statement:
-    RETURN expression? ';'
+    blockLabel = block
+    | IF '(' expression ')' block (
+        ELSIF '(' expression ')' block
+    )* (ELSE block)?
+    | FOR '(' forControl ')' block
+    | WHILE '(' expression ')' block
+    | DO block WHILE '(' expression ')' ';'
+    | RETURN expression? ';'
     | ';'
     | statementExpression = expression ';';
+
+forControl:
+    variableDeclarations* ';' expression? ';' forUpdate = expressionList?;
 
 expression:
     primary
