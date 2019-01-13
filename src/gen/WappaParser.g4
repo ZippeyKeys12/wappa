@@ -27,34 +27,62 @@ floatLiteral: FLOAT_LITERAL | HEX_FLOAT_LITERAL;
 
 expressionList: expression (',' expression)*;
 
-classDeclaration: CLASS IDENTIFIER classOrObjectBlock;
+classDeclaration:
+    CLASS IDENTIFIER constructorDeclaration? (
+        classOrObjectBlock
+        | ';'
+    );
 
-objectDeclaration: OBJECT IDENTIFIER classOrObjectBlock;
+constructorDeclaration:
+    '(' constructorParameter (',' constructorParameter)* ')';
+
+constructorParameter:
+    LET? variableDeclaratorId (':' typeName)? (
+        '=' variableInitializer
+    )?
+    | VAR? variableDeclaratorId ':' typeName (
+        '=' variableInitializer
+    )?;
+
+objectDeclaration: OBJECT IDENTIFIER (classOrObjectBlock | ';');
 
 classOrObjectBlock:
-    '{' (fieldDeclaration | functionDeclaration)* '}';
+    '{' (variableDeclaration ';' | functionDeclaration)* '}';
 
 functionDeclaration:
     FUN IDENTIFIER ('(' parameterList? ')')? ('->' typeOrVoid)? block;
 
 parameterList:
-    typeOrVoid IDENTIFIER (',' typeOrVoid IDENTIFIER)*;
+    IDENTIFIER (':' typeOrVoid)? (
+        ',' IDENTIFIER (':' typeOrVoid)?
+    )*;
 
-block: '{' statement* '}';
+block: '{' blockStatement* '}';
+
+blockStatement: variableDeclaration ';' | statement;
 
 functionCall:
     IDENTIFIER '(' expressionList? ')'
     | SELF '(' expressionList? ')'
     | SUPER '(' expressionList? ')';
 
-fieldDeclaration:
-    variableDeclaratorId ':' typeName ('=' variableInitializer)? ';';
+variableDeclaration:
+    LET variableDeclaratorId (':' typeName)? (
+        '=' variableInitializer
+    )?
+    | VAR variableDeclaratorId (
+        ':' typeName
+        | '=' variableInitializer
+    );
 
 variableDeclaratorId: IDENTIFIER;
 
 variableInitializer: expression;
 
-statement: expression ';';
+statement:
+    RETURN expression? ';'
+    | ';'
+    | statementExpression = expression ';';
 
 expression:
     primary

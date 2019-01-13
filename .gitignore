@@ -143,8 +143,8 @@ dmypy.json
 
 # Configuration
 .vscode/
+.antlr/
 
 # Generated
-.antlr
 src/gen/*.py
 src/gen/*.tokens

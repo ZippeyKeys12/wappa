@@ -14,7 +14,7 @@ def main():
     lexer = WappaLexer(input)
     stream = CommonTokenStream(lexer)
     parser = WappaParser(stream)
-    tree = parser.start()
+    tree = parser.compilationUnit()
 
 
 if __name__ == "__main__":
