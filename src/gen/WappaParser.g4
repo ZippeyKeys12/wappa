@@ -10,22 +10,9 @@ start: (
         | functionDeclaration
     )*;
 
-literal:
-    integerLiteral
-    | floatLiteral
-    | STRING_LITERAL
-    | BOOL_LITERAL
-    | NIL_LITERAL;
-
-integerLiteral:
-    DECIMAL_LITERAL
-    | HEX_LITERAL
-    | OCT_LITERAL
-    | BINARY_LITERAL;
-
-floatLiteral: FLOAT_LITERAL | HEX_FLOAT_LITERAL;
-
-expressionList: expression (',' expression)*;
+//
+// Class / Object
+//
 
 classDeclaration:
     CLASS IDENTIFIER constructorDeclaration? (
@@ -49,6 +36,10 @@ objectDeclaration: OBJECT IDENTIFIER (classOrObjectBlock | ';');
 classOrObjectBlock:
     '{' (variableDeclaration | functionDeclaration)* '}';
 
+//
+// Function
+//
+
 functionDeclaration:
     FUN IDENTIFIER ('(' parameterList? ')')? ('->' typeOrVoid)? block;
 
@@ -57,12 +48,14 @@ parameterList:
         ',' IDENTIFIER (':' typeOrVoid)?
     )*;
 
-block: '{' (variableDeclaration | statement)* '}';
-
 functionCall:
     IDENTIFIER '(' expressionList? ')'
     | SELF '(' expressionList? ')'
     | SUPER '(' expressionList? ')';
+
+//
+// Variable
+//
 
 variableDeclarations:
     variableDeclaration (',' variableDeclaration)*;
@@ -82,6 +75,12 @@ variableDeclaratorId: IDENTIFIER;
 
 variableInitializer: expression;
 
+//
+// Expression / Statement
+//
+
+block: '{' (variableDeclaration | statement)* '}';
+
 statement:
     blockLabel = block
     | IF '(' expression ')' block (
@@ -96,6 +95,8 @@ statement:
 
 forControl:
     variableDeclarations* ';' expression? ';' forUpdate = expressionList?;
+
+expressionList: expression (',' expression)*;
 
 expression:
     primary
@@ -152,6 +153,25 @@ primary:
 superSuffix: arguments | '.' IDENTIFIER arguments?;
 
 arguments: '(' expressionList? ')';
+
+//
+// General
+//
+
+literal:
+    integerLiteral
+    | floatLiteral
+    | STRING_LITERAL
+    | BOOL_LITERAL
+    | NIL_LITERAL;
+
+integerLiteral:
+    DECIMAL_LITERAL
+    | HEX_LITERAL
+    | OCT_LITERAL
+    | BINARY_LITERAL;
+
+floatLiteral: FLOAT_LITERAL | HEX_FLOAT_LITERAL;
 
 typeOrVoid: (typeName | VOID);
 
