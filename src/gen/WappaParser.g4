@@ -16,6 +16,8 @@ compilationUnit: (
 
 classDeclaration:
     CLASS IDENTIFIER constructorDeclaration? (
+        '<' IDENTIFIER arguments?
+    )? (':' IDENTIFIER arguments? (',' IDENTIFIER arguments?)*)? (
         classOrObjectBlock
         | ';'
     );
