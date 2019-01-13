@@ -14,8 +14,10 @@ compilationUnit: (
 // Class / Object
 //
 
+classModifiers: (visibilityModifier | modifierModifier)+;
+
 classDeclaration:
-    CLASS IDENTIFIER constructorDeclaration? (
+    classModifiers? CLASS IDENTIFIER constructorDeclaration? (
         '<' IDENTIFIER arguments?
     )? (':' IDENTIFIER arguments? (',' IDENTIFIER arguments?)*)? (
         classOrObjectBlock
@@ -48,8 +50,17 @@ fieldDeclaration:
 // Function
 //
 
+functionModifiers: (
+        CONST
+        | OVERRIDE
+        | visibilityModifier
+        | modifierModifier
+    )+;
+
 functionDeclaration:
-    FUN IDENTIFIER ('(' parameterList? ')')? ('->' typeOrVoid)? block;
+    functionModifiers? FUN IDENTIFIER ('(' parameterList? ')')? (
+        '->' typeOrVoid
+    )? block;
 
 parameterList:
     IDENTIFIER (':' typeOrVoid)? (
@@ -184,3 +195,7 @@ floatLiteral: FLOAT_LITERAL | HEX_FLOAT_LITERAL;
 typeOrVoid: (typeName | VOID);
 
 typeName: IDENTIFIER;
+
+visibilityModifier: PRIVATE | PROTECTED | PUBLIC;
+
+modifierModifier: ABSTRACT | FINAL | OPEN;
