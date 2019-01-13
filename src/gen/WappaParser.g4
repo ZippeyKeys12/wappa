@@ -4,7 +4,7 @@ options {
     tokenVocab = WappaLexer;
 }
 
-start: (
+compilationUnit: (
         classDeclaration
         | objectDeclaration
         | functionDeclaration
@@ -34,7 +34,13 @@ constructorParameter:
 objectDeclaration: OBJECT IDENTIFIER (classOrObjectBlock | ';');
 
 classOrObjectBlock:
-    '{' (variableDeclaration | functionDeclaration)* '}';
+    '{' (fieldDeclaration | functionDeclaration)* '}';
+
+fieldDeclaration:
+    (
+        LET variableDeclaratorId (':' typeName)?
+        | (VAL | VAR) variableDeclaratorId ':' typeName
+    ) ('{' (IDENTIFIER block)+ '}')?;
 
 //
 // Function
@@ -117,7 +123,7 @@ expression:
     | prefix = ('~' | '!') expression
     | expression bop = ('*' | '/' | '%') expression
     | expression bop = ('+' | '-') expression
-    | expression ('<' '<' | '>' '>' '>' | '>' '>') expression
+    | expression bop = ('<<' | '>>>' | '>>') expression
     | expression bop = ('<=' | '>=' | '>' | '<') expression
     | expression bop = IS typeName
     | expression bop = ('==' | '!=') expression
@@ -138,7 +144,7 @@ expression:
         | '|='
         | '^='
         | '>>='
-        // | '>>>='
+        | '>>>='
         | '<<='
         | '%='
     ) expression;

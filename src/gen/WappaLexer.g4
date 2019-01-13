@@ -1,6 +1,9 @@
 lexer grammar WappaLexer;
 
+//
 // Keywords
+//
+
 // ABSTRACT:     'abstract';
 // ASSERT:       'assert';
 BOOLEAN: 'boolean';
@@ -54,7 +57,9 @@ VOID: 'void';
 // VOLATILE:     'volatile';
 WHILE: 'while';
 
-// Literals
+//
+// Literals / Identifier
+//
 
 DECIMAL_LITERAL: ('0' | [1-9] (Digits? | '_'+ Digits)) [lL]?;
 HEX_LITERAL:
@@ -74,7 +79,11 @@ STRING_LITERAL: '"' StringInner '"' | '\'' StringInner '\'';
 
 NIL_LITERAL: 'nil';
 
+IDENTIFIER: Letter LetterOrDigit*;
+
+//
 // Separators
+//
 
 LPAREN: '(';
 RPAREN: ')';
@@ -86,56 +95,64 @@ SEMI:   ';';
 COMMA:  ',';
 DOT:    '.';
 
+//
 // Operators
+//
 
-ARROW:         '->';
-ASSIGN:        '=';
-GT:            '>';
-LT:            '<';
-BANG:          '!';
-TILDE:         '~';
-QUESTION:      '?';
-SCOPE:         '::';
-COLON:         ':';
-EQUAL:         '==';
-LE:            '<=';
-GE:            '>=';
-NOTEQUAL:      '!=';
-AND:           '&&';
-OR:            '||';
-INC:           '++';
-DEC:           '--';
-POW:           '**';
-ADD:           '+';
-SUB:           '-';
-MUL:           '*';
-DIV:           '/';
-BITAND:        '&';
-BITOR:         '|';
-CARET:         '^';
-MOD:           '%';
-ADD_ASSIGN:    '+=';
-SUB_ASSIGN:    '-=';
-POW_ASSIGN:    '**=';
-MUL_ASSIGN:    '*=';
-DIV_ASSIGN:    '/=';
-AND_ASSIGN:    '&=';
-OR_ASSIGN:     '|=';
-XOR_ASSIGN:    '^=';
-MOD_ASSIGN:    '%=';
-LSHIFT_ASSIGN: '<<=';
-RSHIFT_ASSIGN: '>>=';
-// URSHIFT_ASSIGN: '>>>=';
+ARROW:          '->';
+ASSIGN:         '=';
+GT:             '>';
+LT:             '<';
+LSHIFT:         '<<';
+RSHIFT:         '>>';
+URSHIFT:        '>>>';
+BANG:           '!';
+TILDE:          '~';
+QUESTION:       '?';
+SCOPE:          '::';
+COLON:          ':';
+EQUAL:          '==';
+LE:             '<=';
+GE:             '>=';
+NOTEQUAL:       '!=';
+AND:            '&&';
+OR:             '||';
+INC:            '++';
+DEC:            '--';
+POW:            '**';
+ADD:            '+';
+SUB:            '-';
+MUL:            '*';
+DIV:            '/';
+BITAND:         '&';
+BITOR:          '|';
+CARET:          '^';
+MOD:            '%';
+ADD_ASSIGN:     '+=';
+SUB_ASSIGN:     '-=';
+POW_ASSIGN:     '**=';
+MUL_ASSIGN:     '*=';
+DIV_ASSIGN:     '/=';
+AND_ASSIGN:     '&=';
+OR_ASSIGN:      '|=';
+XOR_ASSIGN:     '^=';
+MOD_ASSIGN:     '%=';
+LSHIFT_ASSIGN:  '<<=';
+RSHIFT_ASSIGN:  '>>=';
+URSHIFT_ASSIGN: '>>>=';
 
+//
 // Whitespace and comments
+//
+
 WS:           [ \t\r\n\u000C]+          -> skip;
 COMMENT:      '/*' .*? '*/'             -> skip;
 LINE_COMMENT: '//' ~[\r\n\u2028\u2029]* -> skip;
 
-// Identifiers
-IDENTIFIER: Letter LetterOrDigit*;
-
+//
 // Fragment rules
+//
+
 fragment ExponentPart: [eE] [+-]? Digits;
 
 fragment EscapeSequence:
