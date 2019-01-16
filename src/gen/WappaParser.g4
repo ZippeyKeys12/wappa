@@ -5,24 +5,47 @@ options {
 }
 
 compilationUnit: (
-        classDeclaration
+        // Directives
+        includeDirective
+        | ifDirective
+
+        // Declarations
+        | classDeclaration
         | objectDeclaration
         | functionDeclaration
     )*;
 
 //
-// Class / Object
+// Object
+//
+
+objectDeclaration: OBJECT IDENTIFIER (classOrObjectBlock | ';');
+
+//
+// Class
 //
 
 classModifiers: (visibilityModifier | modifierModifier)+;
 
 classDeclaration:
-    classModifiers? CLASS IDENTIFIER constructorDeclaration? (
-        '<' IDENTIFIER arguments?
-    )? (':' IDENTIFIER arguments? (',' IDENTIFIER arguments?)*)? (
-        classOrObjectBlock
-        | ';'
-    );
+    classModifiers? CLASS IDENTIFIER constructorDeclaration? classParentDeclaration?
+        classInterfaceDeclaration? classMixinDeclaration? classOrObjectBlock;
+
+classParentDeclaration: 'extends' innerConstructorCall;
+
+classInterfaceDeclaration: 'implements' interfaceSpecifierList;
+
+classMixinDeclaration: 'with' identifierList;
+
+interfaceSpecifierList:
+    interfaceSpecifier (',' interfaceSpecifier)*;
+
+interfaceSpecifier: IDENTIFIER (BY IDENTIFIER)?;
+
+innerConstructorCallList:
+    innerConstructorCall (',' innerConstructorCall)*;
+
+innerConstructorCall: IDENTIFIER | functionCall;
 
 constructorDeclaration:
     '(' constructorParameter (',' constructorParameter)* ')';
@@ -35,10 +58,9 @@ constructorParameter:
         '=' variableInitializer
     )?;
 
-objectDeclaration: OBJECT IDENTIFIER (classOrObjectBlock | ';');
-
 classOrObjectBlock:
-    '{' (fieldDeclaration | functionDeclaration)* '}';
+    '{' (fieldDeclaration | functionDeclaration)* '}'
+    | ';';
 
 fieldDeclaration:
     (
@@ -68,9 +90,13 @@ parameterList:
     )*;
 
 functionCall:
-    IDENTIFIER '(' expressionList? ')'
-    | SELF '(' expressionList? ')'
-    | SUPER '(' expressionList? ')';
+    IDENTIFIER '(' functionArguments? ')'
+    | SELF '(' functionArguments? ')'
+    | SUPER '(' functionArguments? ')';
+
+functionArguments: functionArgument (',' functionArgument)*;
+
+functionArgument: (IDENTIFIER ':')? expression;
 
 //
 // Variable
@@ -98,7 +124,8 @@ variableInitializer: expression;
 // Expression / Statement
 //
 
-block: '{' (variableDeclaration | statement)* '}';
+block:
+    '{' (variableDeclaration | functionDeclaration | statement)* '}';
 
 statement:
     blockLabel = block
@@ -110,7 +137,7 @@ statement:
     | DO block WHILE '(' expression ')' ';'
     | RETURN expression? ';'
     | ';'
-    | statementExpression = expression ';';
+    | statementExpression = expression (';');
 
 forControl:
     variableDeclarations* ';' expression? ';' forUpdate = expressionList?;
@@ -130,7 +157,7 @@ expression:
     | expression '[' expression ']'
     | functionCall
     | NEW typeName arguments
-    | '(' typeName ')' expression
+    | expression 'as' typeName
     | expression postfix = ('++' | '--')
     | prefix = ('+' | '-' | '++' | '--') expression
     | prefix = ('~' | '!') expression
@@ -174,6 +201,13 @@ superSuffix: arguments | '.' IDENTIFIER arguments?;
 arguments: '(' expressionList? ')';
 
 //
+// Directive
+//
+
+ifDirective:      (D_IF | D_IFDEF) expression ';' .*? D_ENDIF;
+includeDirective: D_INCLUDE STRING_LITERAL;
+
+//
 // General
 //
 
@@ -199,3 +233,5 @@ typeName: IDENTIFIER;
 visibilityModifier: PRIVATE | PROTECTED | PUBLIC;
 
 modifierModifier: ABSTRACT | FINAL | OPEN;
+
+identifierList: IDENTIFIER (',' IDENTIFIER)*;

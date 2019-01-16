@@ -5,9 +5,11 @@ lexer grammar WappaLexer;
 //
 
 ABSTRACT: 'abstract';
+AS:       'as';
 // ASSERT:       'assert';
 BOOLEAN: 'boolean';
 // BREAK:        'break';
+BY: 'by';
 // CASE:         'case';
 // CATCH:        'catch';
 CLASS: 'class';
@@ -18,8 +20,8 @@ DO:    'do';
 ELSE:  'else';
 ELSIF: 'elsif';
 // ENUM:         'enum';
-// EXTENDS:      'extends';
-FINAL: 'final';
+EXTENDS: 'extends';
+FINAL:   'final';
 // FINALLY:      'finally';
 // FLOAT:        'float';
 FOR: 'for';
@@ -27,8 +29,8 @@ FUN: 'fun';
 IF:  'if';
 IS:  'is';
 // GOTO:         'goto';
-// IMPLEMENTS:   'implements';
-IMPORT: 'import';
+IMPLEMENTS: 'implements';
+IMPORT:     'import';
 // INTERFACE:    'interface';
 LET: 'let';
 MY:  'my';
@@ -58,6 +60,14 @@ VAR:  'var';
 VOID: 'void';
 // VOLATILE:     'volatile';
 WHILE: 'while';
+WITH:  'with';
+
+// Directive
+
+D_ENDIF:   '#endif';
+D_IF:      '#if';
+D_IFDEF:   '#ifdef';
+D_INCLUDE: '#include';
 
 //
 // Literals / Identifier
@@ -147,7 +157,7 @@ URSHIFT_ASSIGN: '>>>=';
 // Whitespace and comments
 //
 
-WS:           [ \t\r\n\u000C]+          -> skip;
+WS:           [ \r\n\t\u000C]+          -> skip;
 COMMENT:      '/*' .*? '*/'             -> skip;
 LINE_COMMENT: '//' ~[\r\n\u2028\u2029]* -> skip;
 
