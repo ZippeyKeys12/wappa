@@ -14,6 +14,7 @@ BY: 'by';
 // CATCH:        'catch';
 CLASS: 'class';
 CONST: 'const';
+COPY:  'copy';
 // CONTINUE:     'continue';
 // DEFAULT:      'default';
 DO:    'do';
@@ -42,6 +43,7 @@ OVERRIDE: 'override';
 // PACKAGE:      'package';
 PRIVATE:   'private';
 PROTECTED: 'protected';
+PROTOTYPE: 'prototype';
 PUBLIC:    'public';
 RETURN:    'return';
 SELF:      'self';
@@ -64,10 +66,10 @@ WITH:  'with';
 
 // Directive
 
-D_ENDIF:   '#endif';
-D_IF:      '#if';
-D_IFDEF:   '#ifdef';
-D_INCLUDE: '#include';
+// D_ENDIF:   '#endif';
+// D_IF:      '#if';
+// D_IFDEF:   '#ifdef';
+// D_INCLUDE: '#include';
 
 //
 // Literals / Identifier

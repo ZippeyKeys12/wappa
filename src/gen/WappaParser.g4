@@ -6,36 +6,38 @@ options {
 
 compilationUnit: (
         // Directives
-        includeDirective
-        | ifDirective
-
-        // Declarations
-        | classDeclaration
-        | objectDeclaration
-        | functionDeclaration
+        // includeDirective
+        // | ifDirective
+        //
+        statement
     )*;
 
 //
 // Object
 //
 
-objectDeclaration: OBJECT IDENTIFIER (classOrObjectBlock | ';');
+objectModifiers: visibilityModifier? modifierModifier?;
+
+objectType: 'object' | 'prototype';
+
+objectDeclaration:
+    objectModifiers objectType IDENTIFIER classOrObjectMixinDeclaration? classOrObjectBlock;
 
 //
 // Class
 //
 
-classModifiers: (visibilityModifier | modifierModifier)+;
+classModifiers: visibilityModifier? modifierModifier?;
 
 classDeclaration:
-    classModifiers? CLASS IDENTIFIER constructorDeclaration? classParentDeclaration?
-        classInterfaceDeclaration? classMixinDeclaration? classOrObjectBlock;
+    classModifiers 'class' IDENTIFIER constructorDeclaration? classParentDeclaration?
+        classInterfaceDeclaration? classOrObjectMixinDeclaration? classOrObjectBlock;
 
 classParentDeclaration: 'extends' innerConstructorCall;
 
 classInterfaceDeclaration: 'implements' interfaceSpecifierList;
 
-classMixinDeclaration: 'with' identifierList;
+classOrObjectMixinDeclaration: 'with' identifierList;
 
 interfaceSpecifierList:
     interfaceSpecifier (',' interfaceSpecifier)*;
@@ -136,6 +138,9 @@ statement:
     | WHILE '(' expression ')' block
     | DO block WHILE '(' expression ')' ';'
     | RETURN expression? ';'
+    | classDeclaration
+    | objectDeclaration
+    | functionDeclaration
     | ';'
     | statementExpression = expression (';');
 
@@ -156,7 +161,10 @@ expression:
     )
     | expression '[' expression ']'
     | functionCall
+    | objectDeclaration
+    | classDeclaration
     | NEW typeName arguments
+    | COPY IDENTIFIER
     | expression 'as' typeName
     | expression postfix = ('++' | '--')
     | prefix = ('+' | '-' | '++' | '--') expression
@@ -204,8 +212,8 @@ arguments: '(' expressionList? ')';
 // Directive
 //
 
-ifDirective:      (D_IF | D_IFDEF) expression ';' .*? D_ENDIF;
-includeDirective: D_INCLUDE STRING_LITERAL;
+// ifDirective:      (D_IF | D_IFDEF) expression ';' .*? D_ENDIF;
+// includeDirective: D_INCLUDE STRING_LITERAL;
 
 //
 // General
