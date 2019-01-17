@@ -16,12 +16,10 @@ compilationUnit: (
 // Object
 //
 
-objectModifiers: visibilityModifier? modifierModifier?;
-
-objectType: 'object' | 'prototype';
+objectType: 'object' | 'prototype' | 'singleton';
 
 objectDeclaration:
-    objectModifiers objectType IDENTIFIER classOrObjectMixinDeclaration? classOrObjectBlock;
+    visibilityModifier? objectType IDENTIFIER classOrObjectMixinDeclaration? classOrObjectBlock;
 
 //
 // Class
@@ -53,10 +51,10 @@ constructorDeclaration:
     '(' constructorParameter (',' constructorParameter)* ')';
 
 constructorParameter:
-    LET? variableDeclaratorId (':' typeName)? (
+    'let'? variableDeclaratorId (':' typeName)? (
         '=' variableInitializer
     )?
-    | VAR? variableDeclaratorId ':' typeName (
+    | staticTypedVar? variableDeclaratorId ':' typeName (
         '=' variableInitializer
     )?;
 
@@ -66,8 +64,8 @@ classOrObjectBlock:
 
 fieldDeclaration:
     (
-        LET variableDeclaratorId (':' typeName)?
-        | (VAL | VAR) variableDeclaratorId ':' typeName
+        'let' variableDeclaratorId (':' typeName)?
+        | staticTypedVar variableDeclaratorId ':' typeName
     ) ('{' (IDENTIFIER block)+ '}')?;
 
 //
@@ -75,14 +73,14 @@ fieldDeclaration:
 //
 
 functionModifiers: (
-        CONST
-        | OVERRIDE
+        'const'
+        | 'override'
         | visibilityModifier
         | modifierModifier
     )+;
 
 functionDeclaration:
-    functionModifiers? FUN IDENTIFIER ('(' parameterList? ')')? (
+    functionModifiers? 'fun' IDENTIFIER ('(' parameterList? ')')? (
         '->' typeOrVoid
     )? block;
 
@@ -93,8 +91,8 @@ parameterList:
 
 functionCall:
     IDENTIFIER '(' functionArguments? ')'
-    | SELF '(' functionArguments? ')'
-    | SUPER '(' functionArguments? ')';
+    | 'self' '(' functionArguments? ')'
+    | 'super' '(' functionArguments? ')';
 
 functionArguments: functionArgument (',' functionArgument)*;
 
@@ -109,10 +107,10 @@ variableDeclarations:
 
 variableDeclaration:
     (
-        LET variableDeclaratorId (':' typeName)? (
+        'let' variableDeclaratorId (':' typeName)? (
             '=' variableInitializer
         )?
-        | VAR variableDeclaratorId (
+        | staticTypedVar variableDeclaratorId (
             ':' typeName
             | '=' variableInitializer
         )
@@ -131,13 +129,13 @@ block:
 
 statement:
     blockLabel = block
-    | IF '(' expression ')' block (
-        ELSIF '(' expression ')' block
-    )* (ELSE block)?
-    | FOR '(' forControl ')' block
-    | WHILE '(' expression ')' block
-    | DO block WHILE '(' expression ')' ';'
-    | RETURN expression? ';'
+    | 'if' '(' expression ')' block (
+        'elsif' '(' expression ')' block
+    )* ('else' block)?
+    | 'for' '(' forControl ')' block
+    | 'while' '(' expression ')' block
+    | 'do' block 'while' '(' expression ')' ';'
+    | 'return' expression? ';'
     | classDeclaration
     | objectDeclaration
     | functionDeclaration
@@ -154,17 +152,17 @@ expression:
     | expression bop = '.' (
         IDENTIFIER
         | functionCall
-        | SELF
+        | 'self'
         // | NEW nonWildcardTypeArguments? innerCreator
-        | SUPER superSuffix
+        | 'super' superSuffix
         // | explicitGenericInvocation
     )
     | expression '[' expression ']'
     | functionCall
     | objectDeclaration
     | classDeclaration
-    | NEW typeName arguments
-    | COPY IDENTIFIER
+    | 'new' typeName arguments
+    | 'copy' IDENTIFIER
     | expression 'as' typeName
     | expression postfix = ('++' | '--')
     | prefix = ('+' | '-' | '++' | '--') expression
@@ -173,7 +171,7 @@ expression:
     | expression bop = ('+' | '-') expression
     | expression bop = ('<<' | '>>>' | '>>') expression
     | expression bop = ('<=' | '>=' | '>' | '<') expression
-    | expression bop = IS typeName
+    | expression bop = 'is' typeName
     | expression bop = ('==' | '!=') expression
     | expression bop = '&' expression
     | expression bop = '^' expression
@@ -198,11 +196,11 @@ expression:
     ) expression;
 
 primary:
-    LPAREN expression RPAREN
-    | SELF
-    | SUPER
+    '(' expression ')'
+    | 'self'
+    | 'super'
     | literal
-    | LET? IDENTIFIER;
+    | 'let'? IDENTIFIER;
 
 superSuffix: arguments | '.' IDENTIFIER arguments?;
 
@@ -234,12 +232,18 @@ integerLiteral:
 
 floatLiteral: FLOAT_LITERAL | HEX_FLOAT_LITERAL;
 
-typeOrVoid: (typeName | VOID);
+staticTypedVar: 'var' | 'val';
+
+typeOrVoid: (typeName | 'void');
 
 typeName: IDENTIFIER;
 
-visibilityModifier: PRIVATE | PROTECTED | PUBLIC;
+visibilityModifier:
+    'private'
+    | 'protected'
+    | 'internal'
+    | 'public';
 
-modifierModifier: ABSTRACT | FINAL | OPEN;
+modifierModifier: 'abstract' | 'final' | 'open';
 
 identifierList: IDENTIFIER (',' IDENTIFIER)*;
