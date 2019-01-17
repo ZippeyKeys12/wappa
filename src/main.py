@@ -1,20 +1,21 @@
 import sys
 
-from antlr4 import CommonTokenStream, InputStream
+from antlr4 import CommonTokenStream, FileStream, ParseTreeWalker
+
+from gen.Wappa import Wappa
 from gen.WappaLexer import WappaLexer
-from gen.WappaParser import WappaParser
+from WappaListener import WappaListener
 
 
 def main():
-    input = InputStream(
-        """
-        x=1+1
-    """
-    )
+    input = FileStream("input.txt")
     lexer = WappaLexer(input)
-    stream = CommonTokenStream(lexer)
-    parser = WappaParser(stream)
+    tokens = CommonTokenStream(lexer)
+    parser = Wappa(tokens)
     tree = parser.compilationUnit()
+    listener = WappaListener()
+    walker = ParseTreeWalker()
+    walker.walk(listener, tree)
 
 
 if __name__ == "__main__":

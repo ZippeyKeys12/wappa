@@ -1,4 +1,4 @@
-parser grammar WappaParser;
+parser grammar Wappa;
 
 options {
     tokenVocab = WappaLexer;
@@ -19,7 +19,8 @@ compilationUnit: (
 objectType: 'object' | 'prototype' | 'singleton';
 
 objectDeclaration:
-    visibilityModifier? objectType IDENTIFIER classOrObjectMixinDeclaration? classOrObjectBlock;
+    visibilityModifier? objectType IDENTIFIER classOrObjectParentDeclaration?
+        classOrObjectInterfaceDeclaration? classOrObjectMixinDeclaration? classOrObjectBlock;
 
 //
 // Class
@@ -28,12 +29,13 @@ objectDeclaration:
 classModifiers: visibilityModifier? modifierModifier?;
 
 classDeclaration:
-    classModifiers 'class' IDENTIFIER constructorDeclaration? classParentDeclaration?
-        classInterfaceDeclaration? classOrObjectMixinDeclaration? classOrObjectBlock;
+    classModifiers 'class' IDENTIFIER constructorDeclaration? classOrObjectParentDeclaration?
+        classOrObjectInterfaceDeclaration? classOrObjectMixinDeclaration? classOrObjectBlock;
 
-classParentDeclaration: 'extends' innerConstructorCall;
+classOrObjectParentDeclaration: 'extends' innerConstructorCall;
 
-classInterfaceDeclaration: 'implements' interfaceSpecifierList;
+classOrObjectInterfaceDeclaration:
+    'implements' interfaceSpecifierList;
 
 classOrObjectMixinDeclaration: 'with' identifierList;
 
@@ -140,7 +142,7 @@ statement:
     | objectDeclaration
     | functionDeclaration
     | ';'
-    | statementExpression = expression (';');
+    | statementExpression = expression ';';
 
 forControl:
     variableDeclarations* ';' expression? ';' forUpdate = expressionList?;
@@ -161,7 +163,7 @@ expression:
     | functionCall
     | objectDeclaration
     | classDeclaration
-    | 'new' typeName arguments
+    | typeName arguments
     | 'copy' IDENTIFIER
     | expression 'as' typeName
     | expression postfix = ('++' | '--')
