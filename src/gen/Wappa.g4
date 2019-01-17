@@ -159,7 +159,6 @@ expression:
         | 'super' superSuffix
         // | explicitGenericInvocation
     )
-    | expression '[' expression ']'
     | functionCall
     | objectDeclaration
     | classDeclaration
@@ -169,9 +168,10 @@ expression:
     | expression postfix = ('++' | '--')
     | prefix = ('+' | '-' | '++' | '--') expression
     | prefix = ('~' | '!') expression
-    | expression bop = ('*' | '/' | '%') expression
+    | expression bop = '**' expression
+    | expression bop = ( '*' | '/' | '%') expression
     | expression bop = ('+' | '-') expression
-    | expression bop = ('<<' | '>>>' | '>>') expression
+    | expression bop = ('<<' | '>>') expression
     | expression bop = ('<=' | '>=' | '>' | '<') expression
     | expression bop = 'is' typeName
     | expression bop = ('==' | '!=') expression
@@ -192,7 +192,6 @@ expression:
         | '|='
         | '^='
         | '>>='
-        | '>>>='
         | '<<='
         | '%='
     ) expression;
