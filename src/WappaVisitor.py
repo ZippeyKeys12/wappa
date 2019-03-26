@@ -37,7 +37,7 @@ class WappaVisitor(BaseVisitor):
             Exception('Conflicting declaration of "{}"'.format(ID), ctx.start)
 
         self.classes[ID] = Class(
-            self.visitClassModifiers(ctx.classModifiers()))
+            ID, self.visitClassModifiers(ctx.classModifiers()))
 
         return self.visitChildren(ctx)
 
