@@ -3,7 +3,6 @@ const - label functions without side effects
       - value can only have const methods called
 val - reference can't change
 var - statically-typed variable
-my - lexically scoped
 
 class - to make objects of
 object - singleton

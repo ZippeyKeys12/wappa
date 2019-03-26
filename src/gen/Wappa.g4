@@ -4,40 +4,22 @@ options {
     tokenVocab = WappaLexer;
 }
 
-compilationUnit: (
-        // Directives
-        // includeDirective
-        // | ifDirective
-        //
-        statement
-    )*;
+compilationUnit: classDeclaration*;
 
-//
-// Object
-//
-
-objectType: 'object' | 'prototype' | 'singleton';
-
-objectDeclaration:
-    visibilityModifier? objectType IDENTIFIER classOrObjectParentDeclaration?
-        classOrObjectInterfaceDeclaration? classOrObjectMixinDeclaration? classOrObjectBlock;
-
-//
-// Class
-//
-
-classModifiers: visibilityModifier? modifierModifier?;
+///////////
+// Class //
+///////////
 
 classDeclaration:
-    classModifiers 'class' IDENTIFIER constructorDeclaration? classOrObjectParentDeclaration?
-        classOrObjectInterfaceDeclaration? classOrObjectMixinDeclaration? classOrObjectBlock;
+    classModifiers 'class' IDENTIFIER constructorDeclaration? classParentDeclaration?
+        classInterfaceDeclaration? classBlock;
 
-classOrObjectParentDeclaration: 'extends' innerConstructorCall;
+classModifiers: visibilityModifier? inheritanceModifier?;
 
-classOrObjectInterfaceDeclaration:
-    'implements' interfaceSpecifierList;
+classParentDeclaration:
+    'extends' (IDENTIFIER | innerConstructorCall);
 
-classOrObjectMixinDeclaration: 'with' identifierList;
+classInterfaceDeclaration: 'implements' interfaceSpecifierList;
 
 interfaceSpecifierList:
     interfaceSpecifier (',' interfaceSpecifier)*;
@@ -47,7 +29,7 @@ interfaceSpecifier: IDENTIFIER (BY IDENTIFIER)?;
 innerConstructorCallList:
     innerConstructorCall (',' innerConstructorCall)*;
 
-innerConstructorCall: IDENTIFIER | functionCall;
+innerConstructorCall: functionCall;
 
 constructorDeclaration:
     '(' constructorParameter (',' constructorParameter)* ')';
@@ -60,29 +42,28 @@ constructorParameter:
         '=' variableInitializer
     )?;
 
-classOrObjectBlock:
+classBlock:
     '{' (fieldDeclaration | functionDeclaration)* '}'
     | ';';
 
 fieldDeclaration:
-    (
-        'let' variableDeclaratorId (':' typeName)?
-        | staticTypedVar variableDeclaratorId ':' typeName
-    ) ('{' (IDENTIFIER block)+ '}')?;
+    (staticTypedVar variableDeclaratorId ':' typeName) (
+        '=' (literal | innerConstructorCall)
+    ) ('{' (IDENTIFIER block)+ '}')? ';';
 
-//
-// Function
-//
+//////////////
+// Function //
+//////////////
 
 functionModifiers: (
         'const'
         | 'override'
         | visibilityModifier
-        | modifierModifier
+        | inheritanceModifier
     )+;
 
 functionDeclaration:
-    functionModifiers? 'fun' IDENTIFIER ('(' parameterList? ')')? (
+    functionModifiers? 'fun' IDENTIFIER ('(' parameterList? ')') (
         '->' typeOrVoid
     )? block;
 
@@ -100,9 +81,9 @@ functionArguments: functionArgument (',' functionArgument)*;
 
 functionArgument: (IDENTIFIER ':')? expression;
 
-//
-// Variable
-//
+//////////////
+// Variable //
+//////////////
 
 variableDeclarations:
     variableDeclaration (',' variableDeclaration)*;
@@ -122,9 +103,9 @@ variableDeclaratorId: IDENTIFIER;
 
 variableInitializer: expression;
 
-//
-// Expression / Statement
-//
+////////////////////////////
+// Expression / Statement //
+////////////////////////////
 
 block:
     '{' (variableDeclaration | functionDeclaration | statement)* '}';
@@ -139,7 +120,6 @@ statement:
     | 'do' block 'while' '(' expression ')' ';'
     | 'return' expression? ';'
     | classDeclaration
-    | objectDeclaration
     | functionDeclaration
     | ';'
     | statementExpression = expression ';';
@@ -160,10 +140,8 @@ expression:
         // | explicitGenericInvocation
     )
     | functionCall
-    | objectDeclaration
     | classDeclaration
     | typeName arguments
-    | 'copy' IDENTIFIER
     | expression 'as' typeName
     | expression postfix = ('++' | '--')
     | prefix = ('+' | '-' | '++' | '--') expression
@@ -245,6 +223,6 @@ visibilityModifier:
     | 'internal'
     | 'public';
 
-modifierModifier: 'abstract' | 'final' | 'open';
+inheritanceModifier: 'abstract' | 'final' | 'open';
 
 identifierList: IDENTIFIER (',' IDENTIFIER)*;
