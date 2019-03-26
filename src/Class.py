@@ -4,8 +4,9 @@ ostr = Optional[str]
 
 
 class Class:
-    def __init__(self, ID, modifiers: Tuple[ostr, ostr]):
+    def __init__(self, ID: str, parent: str, modifiers: Tuple[ostr, ostr]):
         self.ID = ID
+        self.parent = parent
         self.modifiers = modifiers
         self.fields: Dict[str, Any] = {}
         self.functions: Dict[str, Any] = {}
@@ -20,6 +21,9 @@ class Class:
             del self.functions[ID]
 
     def compile(self, ID: str) -> str:
+        if self.parent is not None:
+            ID += ":{}".format(self.parent)
+
         # modifiers = filter(lambda x: x is not None, self.modifiers)
         members = (f.compile() for f in list(
             self.fields.values())+list(self.functions.values()))

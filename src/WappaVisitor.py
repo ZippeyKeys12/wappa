@@ -7,10 +7,9 @@ from gen.Wappa import Wappa
 from gen.WappaVisitor import WappaVisitor as BaseVisitor
 
 
-class Exception:
-    def __init__(self, arg, tok):
-        print("{} at {}".format(arg, "Line {0.line}".format(tok)))
-        exit()
+def Exception(arg, tok):
+    print("{} at {}".format(arg, "Line {0.line}".format(tok)))
+    exit()
 
 
 class WappaVisitor(BaseVisitor):
@@ -36,8 +35,13 @@ class WappaVisitor(BaseVisitor):
         if ID in self.classes:
             Exception('Conflicting declaration of "{}"'.format(ID), ctx.start)
 
+        parent = ctx.classParentDeclaration()
+
+        if parent is not None:
+            parent = self.visitClassParentDeclaration(parent)
+
         self.classes[ID] = Class(
-            ID, self.visitClassModifiers(ctx.classModifiers()))
+            ID, parent, self.visitClassModifiers(ctx.classModifiers()))
 
         return self.visitChildren(ctx)
 
@@ -46,6 +50,14 @@ class WappaVisitor(BaseVisitor):
             self.visitVisibilityModifier(ctx.visibilityModifier()),
             self.visitInheritanceModifier(ctx.inheritanceModifier())
         )
+
+    def visitClassParentDeclaration(self,
+                                    ctx: Wappa.ClassParentDeclarationContext):
+        ID = ctx.IDENTIFIER()
+        if ID:
+            return ID
+
+        return self.visitChildren(ctx)
 
     def visitVisibilityModifier(self, ctx: Wappa.VisibilityModifierContext):
         return self.__safe_text(ctx)
