@@ -1,10 +1,11 @@
 from io import TextIOWrapper
-from typing import Optional
+from typing import List, Optional, Tuple
 
-from Class import Class
-from Function import Function
-from gen.Wappa import Wappa
-from gen.WappaVisitor import WappaVisitor as BaseVisitor
+from src.Class import Class
+from src.Field import Field
+from src.Function import Function
+from src.gen.Wappa import Wappa
+from src.gen.WappaVisitor import WappaVisitor as BaseVisitor
 
 
 def Exception(arg, tok):
@@ -25,7 +26,7 @@ class WappaVisitor(BaseVisitor):
         ret = self.visitChildren(ctx)
 
         for ID, clazz in self.classes.items():
-            self.file.write(clazz.compile(ID))
+            self.file.write(clazz.compile())
 
         return ret
 
@@ -43,33 +44,79 @@ class WappaVisitor(BaseVisitor):
         self.classes[ID] = Class(
             ID, parent, self.visitClassModifiers(ctx.classModifiers()))
 
-        return self.visitChildren(ctx)
+        self.visitClassBlock(ctx.classBlock(), ID)
+
+        # return self.classes[ID]
 
     def visitClassModifiers(self, ctx: Wappa.ClassModifiersContext):
         return (
-            self.visitVisibilityModifier(ctx.visibilityModifier()),
-            self.visitInheritanceModifier(ctx.inheritanceModifier())
+            self.__safe_text(ctx.visibilityModifier()),
+            self.__safe_text(ctx.inheritanceModifier())
         )
 
     def visitClassParentDeclaration(self,
                                     ctx: Wappa.ClassParentDeclarationContext):
+        return self.__safe_text(ctx, "IDENTIFIER")
+
+    def visitClassBlock(self, ctx: Wappa.ClassBlockContext, ID: str):
+        for member in ctx.memberDeclaration():
+            self.classes[ID].add_member(*self.visitChildren(member))
+
+    def visitFieldDeclaration(self, ctx: Wappa.FieldDeclarationContext):
+        ID = ctx.variableDeclaratorId()
+
+        return (ID, Field(ID, ctx.typeName(), ctx.staticTypedVar(),
+                          (ctx.visibilityModifier(),),
+                          ctx.literal() or ctx.innerConstructorCall()))
+
+    def visitFunctionModifiers(self, ctx: Wappa.FunctionModifiersContext):
+        return (
+            # ctx.CONST() is not None,
+            # ctx.OVERRIDE() is not None,
+            self.__safe_text(ctx.visibilityModifier()),
+            self.__safe_text(ctx.inheritanceModifier())
+        )
+
+    def visitFunctionDeclaration(self, ctx: Wappa.FunctionDeclarationContext):
         ID = ctx.IDENTIFIER()
-        if ID:
-            return ID
+        modifiers = self.visitFunctionModifiers(ctx.functionModifiers())
+        parameters = self.visitParameterList(ctx.parameterList())
+        ret_type = self.visitTypeOrVoid(ctx.typeOrVoid())
+        stnts = self.visitBlock(ctx.block())
 
-        return self.visitChildren(ctx)
+        return (ID, Function(ID, modifiers, parameters, ret_type, stnts))
 
-    def visitVisibilityModifier(self, ctx: Wappa.VisibilityModifierContext):
-        return self.__safe_text(ctx)
-
-    def visitInheritanceModifier(self, ctx: Wappa.InheritanceModifierContext):
-        return self.__safe_text(ctx)
-
-    def __safe_text(self, ctx) -> Optional[str]:
+    def visitParameterList(self, ctx: Wappa.ParameterListContext):
         if ctx is None:
             return None
 
+        parameters: List[Tuple[str, str]] = []
+        for ID, object_type in zip(ctx.IDENTIFIER(), ctx.typeOrVoid()):
+            parameters.append((str(ID), self.visitTypeOrVoid(object_type)))
+
+        return parameters
+
+    def visitBlock(self, ctx: Wappa.BlockContext):
+        return [self.visitStatement(x) for x in ctx.statement()]
+
+    def visitStatement(self, ctx: Wappa.StatementContext):
         return ctx.getText()
+
+    def visitTypeOrVoid(self, ctx: Wappa.TypeOrVoidContext):
+        if ctx is None:
+            return "void"
+
+        return self.__safe_text(ctx.typeName()) or "void"
+
+    def __safe_text(self, ctx, func: str = "getText") -> Optional[str]:
+        if ctx is None:
+            return None
+
+        ret = getattr(ctx, func)()
+        if ret is not None:
+            return ret
+
+        return self.visitChildren(ctx)
 
     # def _get_expression(self, ctx: Wappa.ExpressionContext, i: int = None):
     #     return self.visitExpression(ctx.expression(i))

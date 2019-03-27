@@ -1,5 +1,8 @@
 from typing import Any, Dict, Optional, Tuple
 
+from src.Field import Field
+from src.Function import Function
+
 ostr = Optional[str]
 
 
@@ -8,25 +11,31 @@ class Class:
         self.ID = ID
         self.parent = parent
         self.modifiers = modifiers
-        self.fields: Dict[str, Any] = {}
-        self.functions: Dict[str, Any] = {}
+        self.fields: Dict[str, Field] = {}
+        self.functions: Dict[str, Function] = {}
 
-    def add(self, newMember):
-        pass
+    def add_member(self, ID, new_member):
+        if isinstance(new_member, Function):
+            self.functions[ID] = new_member
+        elif isinstance(new_member, Field):
+            self.fields[ID] = new_member
 
-    def remove(self, ID: str):
+    def remove_member(self, ID: str):
         try:
             del self.fields[ID]
         except KeyError:
             del self.functions[ID]
 
-    def compile(self, ID: str) -> str:
+    def compile(self) -> str:
+        ID = self.ID
         if self.parent is not None:
-            ID += ":{}".format(self.parent)
+            ID = "{}:{}".format(ID, self.parent)
 
         # modifiers = filter(lambda x: x is not None, self.modifiers)
-        members = (f.compile() for f in list(
-            self.fields.values())+list(self.functions.values()))
+        members = (f.compile() for f in
+                   list(self.fields.values())+list(self.functions.values()))
+
+        # print(self.functions["IDNEIT"].compile("IDNEIT"))
 
         return """
             class {} {{

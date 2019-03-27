@@ -1,8 +1,8 @@
 from antlr4 import CommonTokenStream, FileStream
 
-from gen.Wappa import Wappa
-from gen.WappaLexer import WappaLexer
-from WappaVisitor import WappaVisitor
+from src.gen.Wappa import Wappa
+from src.gen.WappaLexer import WappaLexer
+from src.WappaVisitor import WappaVisitor
 
 
 def main():

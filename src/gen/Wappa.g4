@@ -42,35 +42,30 @@ constructorParameter:
         '=' variableInitializer
     )?;
 
-classBlock:
-    '{' (fieldDeclaration | functionDeclaration)* '}'
-    | ';';
+classBlock: '{' memberDeclaration* '}' | ';';
+
+memberDeclaration: fieldDeclaration | functionDeclaration;
 
 fieldDeclaration:
-    (staticTypedVar variableDeclaratorId ':' typeName) (
-        '=' (literal | innerConstructorCall)
+    visibilityModifier? staticTypedVar variableDeclaratorId (
+        (':' typeName) ('=' ( literal | innerConstructorCall))?
+        | (':' typeName)? ('=' ( literal | innerConstructorCall))
     ) ('{' (IDENTIFIER block)+ '}')? ';';
 
 //////////////
 // Function //
 //////////////
 
-functionModifiers: (
-        'const'
-        | 'override'
-        | visibilityModifier
-        | inheritanceModifier
-    )+;
+functionModifiers:
+    'const'? 'override'? visibilityModifier? inheritanceModifier?;
 
 functionDeclaration:
-    functionModifiers? 'fun' IDENTIFIER ('(' parameterList? ')') (
+    functionModifiers 'fun' IDENTIFIER ('(' parameterList? ')') (
         '->' typeOrVoid
     )? block;
 
 parameterList:
-    IDENTIFIER (':' typeOrVoid)? (
-        ',' IDENTIFIER (':' typeOrVoid)?
-    )*;
+    IDENTIFIER ':' typeOrVoid (',' IDENTIFIER ':' typeOrVoid)*;
 
 functionCall:
     IDENTIFIER '(' functionArguments? ')'
@@ -107,8 +102,7 @@ variableInitializer: expression;
 // Expression / Statement //
 ////////////////////////////
 
-block:
-    '{' (variableDeclaration | functionDeclaration | statement)* '}';
+block: '{' statement* '}';
 
 statement:
     blockLabel = block
@@ -121,6 +115,7 @@ statement:
     | 'return' expression? ';'
     | classDeclaration
     | functionDeclaration
+    | variableDeclaration
     | ';'
     | statementExpression = expression ';';
 
