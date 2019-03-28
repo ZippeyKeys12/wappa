@@ -26,14 +26,15 @@ class Class:
         except KeyError:
             del self.functions[ID]
 
-    def compile(self) -> str:
+    def __call__(self) -> str:
         ID = self.ID
         if self.parent is not None:
             ID = "{}:{}".format(ID, self.parent)
 
         # modifiers = filter(lambda x: x is not None, self.modifiers)
-        members = (f.compile() for f in
-                   list(self.fields.values())+list(self.functions.values()))
+        members = self.fields.copy()
+        members.update(self.functions)
+        members = (f() for f in members.values())
 
         # print(self.functions["IDNEIT"].compile("IDNEIT"))
 

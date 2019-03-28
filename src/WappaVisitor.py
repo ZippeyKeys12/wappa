@@ -26,7 +26,7 @@ class WappaVisitor(BaseVisitor):
         ret = self.visitChildren(ctx)
 
         for ID, clazz in self.classes.items():
-            self.file.write(clazz.compile())
+            self.file.write(clazz())
 
         return ret
 
