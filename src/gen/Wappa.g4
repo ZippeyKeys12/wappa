@@ -11,8 +11,7 @@ compilationUnit: classDeclaration*;
 ///////////
 
 classDeclaration:
-    classModifiers 'class' IDENTIFIER constructorDeclaration? classParentDeclaration?
-        classInterfaceDeclaration? classBlock;
+    classModifiers 'class' IDENTIFIER classParentDeclaration? classInterfaceDeclaration? classBlock;
 
 classModifiers: visibilityModifier? inheritanceModifier?;
 
@@ -31,16 +30,13 @@ innerConstructorCallList:
 
 innerConstructorCall: functionCall;
 
-constructorDeclaration:
-    '(' constructorParameter (',' constructorParameter)* ')';
+// constructorDeclaration:
+//     visibilityModifier? IDENTIFIER;
 
-constructorParameter:
-    'let'? variableDeclaratorId (':' typeName)? (
-        '=' variableInitializer
-    )?
-    | staticTypedVar? variableDeclaratorId ':' typeName (
-        '=' variableInitializer
-    )?;
+// constructorParameter:
+//     staticTypedVar? variableDeclaratorId ':' typeName (
+//         '=' variableInitializer
+//     )?;
 
 classBlock: '{' memberDeclaration* '}' | ';';
 
@@ -57,7 +53,7 @@ fieldDeclaration:
 //////////////
 
 functionModifiers:
-    'const'? 'override'? visibilityModifier? inheritanceModifier?;
+    immutable = 'const'? override = 'override'? visibilityModifier? inheritanceModifier?;
 
 functionDeclaration:
     functionModifiers 'fun' IDENTIFIER ('(' parameterList? ')') (
@@ -85,10 +81,7 @@ variableDeclarations:
 
 variableDeclaration:
     (
-        'let' variableDeclaratorId (':' typeName)? (
-            '=' variableInitializer
-        )?
-        | staticTypedVar variableDeclaratorId (
+        staticTypedVar variableDeclaratorId (
             ':' typeName
             | '=' variableInitializer
         )
@@ -106,18 +99,20 @@ block: '{' statement* '}';
 
 statement:
     blockLabel = block
-    | 'if' '(' expression ')' block (
+    | statementType = 'if' '(' expression ')' block (
         'elsif' '(' expression ')' block
     )* ('else' block)?
-    | 'for' '(' forControl ')' block
-    | 'while' '(' expression ')' block
-    | 'do' block 'while' '(' expression ')' ';'
-    | 'return' expression? ';'
-    | classDeclaration
-    | functionDeclaration
+    | statementType = 'for' '(' forControl ')' block
+    | statementType = 'while' '(' expression ')' block
+    | statementType = 'until' '(' expression ')' block
+    | statementType = 'do' block doType = 'while' '(' expression ')' ';'
+    | statementType = 'do' block doType = 'until' '(' expression ')' ';'
+    | statementType = 'return' expression? ';'
+    // | classDeclaration
+    // | functionDeclaration
     | variableDeclaration
     | ';'
-    | statementExpression = expression ';';
+    | expression ';';
 
 forControl:
     variableDeclarations* ';' expression? ';' forUpdate = expressionList?;
@@ -174,7 +169,7 @@ primary:
     | 'self'
     | 'super'
     | literal
-    | 'let'? IDENTIFIER;
+    | IDENTIFIER;
 
 superSuffix: arguments | '.' IDENTIFIER arguments?;
 

@@ -1,11 +1,16 @@
 from io import TextIOWrapper
-from typing import List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
+from src.Block import Block
 from src.Class import Class
+from src.Expression import Expression
 from src.Field import Field
 from src.Function import Function
 from src.gen.Wappa import Wappa
 from src.gen.WappaVisitor import WappaVisitor as BaseVisitor
+from src.Statement import (DoUntilStatement, DoWhileStatement, ExprStatement,
+                           IfStatement, ReturnStatement, Statement,
+                           UntilStatement, WhileStatement)
 
 
 def Exception(arg, tok):
@@ -16,7 +21,7 @@ def Exception(arg, tok):
 class WappaVisitor(BaseVisitor):
     def __init__(self, file: TextIOWrapper):
         self.file = file
-        self.classes = {}
+        self.classes: Dict[str, Class] = {}
 
         BaseVisitor.__init__(self)
 
@@ -25,7 +30,7 @@ class WappaVisitor(BaseVisitor):
 
         ret = self.visitChildren(ctx)
 
-        for ID, clazz in self.classes.items():
+        for _, clazz in self.classes.items():
             self.file.write(clazz())
 
         return ret
@@ -69,24 +74,31 @@ class WappaVisitor(BaseVisitor):
                           (ctx.visibilityModifier(),),
                           ctx.literal() or ctx.innerConstructorCall()))
 
-    def visitFunctionModifiers(self, ctx: Wappa.FunctionModifiersContext):
+    def visitFunctionModifiers(self, ctx: Wappa.FunctionModifiersContext
+                               ) -> Optional[Tuple[
+                                   bool, bool, Optional[str], Optional[str]]]:
+        if ctx is None:
+            return None
+
         return (
-            # ctx.CONST() is not None,
-            # ctx.OVERRIDE() is not None,
+            ctx.immutable is not None,
+            ctx.override is not None,
             self.__safe_text(ctx.visibilityModifier()),
             self.__safe_text(ctx.inheritanceModifier())
         )
 
-    def visitFunctionDeclaration(self, ctx: Wappa.FunctionDeclarationContext):
+    def visitFunctionDeclaration(self, ctx: Wappa.FunctionDeclarationContext
+                                 ) -> Tuple[str, Function]:
         ID = ctx.IDENTIFIER()
         modifiers = self.visitFunctionModifiers(ctx.functionModifiers())
         parameters = self.visitParameterList(ctx.parameterList())
         ret_type = self.visitTypeOrVoid(ctx.typeOrVoid())
-        stnts = self.visitBlock(ctx.block())
+        block = self.visitBlock(ctx.block())
 
-        return (ID, Function(ID, modifiers, parameters, ret_type, stnts))
+        return (ID, Function(ID, modifiers, parameters, ret_type, block))
 
-    def visitParameterList(self, ctx: Wappa.ParameterListContext):
+    def visitParameterList(self, ctx: Wappa.ParameterListContext
+                           ) -> Optional[List[Tuple[str, str]]]:
         if ctx is None:
             return None
 
@@ -96,13 +108,63 @@ class WappaVisitor(BaseVisitor):
 
         return parameters
 
-    def visitBlock(self, ctx: Wappa.BlockContext):
-        return [self.visitStatement(x) for x in ctx.statement()]
+    def visitBlock(self, ctx: Wappa.BlockContext) -> Block:
+        return Block(map(self.visitStatement, ctx.statement()))
 
-    def visitStatement(self, ctx: Wappa.StatementContext):
-        return ctx.getText()
+    def visitStatement(self, ctx: Wappa.StatementContext) -> Statement:
+        statement_type: Any = ctx.statementType
+        if statement_type is not None:
+            statement_type = statement_type.text
+            if statement_type == "if":
+                exprs = ctx.expression()
+                blocks = ctx.block()
 
-    def visitTypeOrVoid(self, ctx: Wappa.TypeOrVoidContext):
+                else_block = len(exprs) < len(blocks)
+
+                elsif_exprs = elsif_blocks = None
+                if len(exprs) > 1:
+                    elsif_exprs = map(self.visitExpression, exprs[1:])
+                    if else_block:
+                        elsif_blocks = map(self.visitBlock, blocks[1:-1])
+                    else:
+                        elsif_blocks = map(self.visitBlock, blocks[1:])
+
+                if else_block:
+                    else_block = self.visitBlock(blocks[-1])
+
+                return IfStatement(
+                    self.visitExpression(exprs[0]),
+                    self.visitBlock(blocks[0]),
+                    elsif_exprs,
+                    elsif_blocks,
+                    else_block)
+
+            elif statement_type == "while":
+                return WhileStatement(self.visitExpression(ctx.expression(0)),
+                                      self.visitBlock(ctx.block(0)))
+
+            elif statement_type == "until":
+                return UntilStatement(self.visitExpression(ctx.expression(0)),
+                                      self.visitBlock(ctx.block(0)))
+
+            elif statement_type == "do":
+                block = self.visitBlock(ctx.block(0))
+                expr = self.visitExpression(ctx.expression(0))
+                if ctx.doType == "while":
+                    return DoWhileStatement(block, expr)
+                else:
+                    return DoUntilStatement(block, expr)
+
+            elif statement_type == "return":
+                return ReturnStatement(self.visitExpression(ctx.expression(0)))
+
+        else:
+            return ExprStatement(self.visitExpression(ctx.expression(0)))
+
+    def visitExpression(self, ctx: Wappa.ExpressionContext):
+        return Expression(ctx.getText())
+
+    def visitTypeOrVoid(self, ctx: Wappa.TypeOrVoidContext) -> str:
         if ctx is None:
             return "void"
 

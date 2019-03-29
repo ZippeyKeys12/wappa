@@ -1,13 +1,12 @@
-from typing import Any, Dict, Optional, Tuple
+from typing import Dict, Optional, Tuple
 
 from src.Field import Field
 from src.Function import Function
 
-ostr = Optional[str]
-
 
 class Class:
-    def __init__(self, ID: str, parent: str, modifiers: Tuple[ostr, ostr]):
+    def __init__(self, ID: str, parent: str,
+                 modifiers: Tuple[Optional[str], Optional[str]]):
         self.ID = ID
         self.parent = parent
         self.modifiers = modifiers
@@ -34,7 +33,6 @@ class Class:
         # modifiers = filter(lambda x: x is not None, self.modifiers)
         members = self.fields.copy()
         members.update(self.functions)
-        members = (f() for f in members.values())
 
         # print(self.functions["IDNEIT"].compile("IDNEIT"))
 
@@ -42,12 +40,9 @@ class Class:
             class {} {{
                 {}
             }}
-        """.format(ID, "\n".join(members))
+        """.format(ID, "\n".join((f() for f in members.values())))
 
     def __str__(self):
         return "{} {}".format(",".join(filter(
             lambda x: x is not None, self.modifiers
         )), self.ID)
-
-
-del ostr
