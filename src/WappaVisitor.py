@@ -3,7 +3,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from src.Block import Block
 from src.Class import Class
-from src.Expression import Expression
+from src.Expression import Expression, BinaryOPExpression, TernaryOPExpression
 from src.Field import Field
 from src.Function import Function
 from src.gen.Wappa import Wappa
@@ -112,6 +112,9 @@ class WappaVisitor(BaseVisitor):
         return Block(map(self.visitStatement, ctx.statement()))
 
     def visitStatement(self, ctx: Wappa.StatementContext) -> Statement:
+        if ctx.getText() == ';':
+            return Statement()
+
         statement_type: Any = ctx.statementType
         if statement_type is not None:
             statement_type = statement_type.text
@@ -158,10 +161,19 @@ class WappaVisitor(BaseVisitor):
             elif statement_type == "return":
                 return ReturnStatement(self.visitExpression(ctx.expression(0)))
 
-        else:
-            return ExprStatement(self.visitExpression(ctx.expression(0)))
+        return ExprStatement(self.visitExpression(ctx.expression(0)))
 
     def visitExpression(self, ctx: Wappa.ExpressionContext):
+        if ctx.bop is not None:
+            return BinaryOPExpression(
+                self.visitExpression(ctx.expression(0)), ctx.bop.text,
+                self.visitExpression(ctx.expression(1)))
+
+        if ctx.top is not None:
+            return TernaryOPExpression(self.visitExpression(ctx.expression(0)),
+                                       self.visitExpression(ctx.expression(1)),
+                                       self.visitExpression(ctx.expression(2)))
+
         return Expression(ctx.getText())
 
     def visitTypeOrVoid(self, ctx: Wappa.TypeOrVoidContext) -> str:

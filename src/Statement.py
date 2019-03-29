@@ -27,23 +27,19 @@ class IfStatement(Statement):
         self.else_block = else_block
 
     def __call__(self) -> str:
-        ret = """
-            if ({}) {}
-        """.format(self.if_expr(), self.__compile_block(self.if_block))
+        ret = "if ({}) {}".format(self.if_expr(),
+                                  self.__compile_block(self.if_block))
 
         exprs = self.elsif_exprs
         blocks = self.elsif_blocks
         if exprs is not None and blocks is not None:
             for expr, block in zip(exprs, blocks):
-                ret += """
-                    else if ({}) {}
-                """.format(expr, self.__compile_block(block))
+                ret += "else if ({}) {}".format(expr,
+                                                self.__compile_block(block))
 
         block = self.else_block
         if block is not None:
-            ret += """
-                else {}
-            """.format(block())
+            ret += "else {}".format(block())
 
         return ret
 
@@ -60,9 +56,7 @@ class WhileStatement(Statement):
         self.block = block
 
     def __call__(self):
-        return """
-            while ({}) {}
-        """.format(self.expr(), self.block())
+        return "while ({}) {}".format(self.expr(), self.block())
 
 
 class UntilStatement(Statement):
@@ -71,9 +65,7 @@ class UntilStatement(Statement):
         self.block = block
 
     def __call__(self):
-        return """
-            until ({}) {}
-        """.format(self.expr(), self.block())
+        return "until ({}) {}".format(self.expr(), self.block())
 
 
 class DoWhileStatement(Statement):

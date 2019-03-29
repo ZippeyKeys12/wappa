@@ -136,19 +136,21 @@ expression:
     | expression postfix = ('++' | '--')
     | prefix = ('+' | '-' | '++' | '--') expression
     | prefix = ('~' | '!') expression
+    | prefix = ('alignof' | 'sizeof' | 'typeof') expression
     | expression bop = '**' expression
     | expression bop = ( '*' | '/' | '%') expression
     | expression bop = ('+' | '-') expression
-    | expression bop = ('<<' | '>>') expression
-    | expression bop = ('<=' | '>=' | '>' | '<') expression
+    | expression bop = ('<<' | '>>' | '>>>') expression
+    | expression bop = ('<=' | '>=' | '>' | '<' | '<=>') expression
     | expression bop = 'is' typeName
-    | expression bop = ('==' | '!=') expression
+    | expression bop = ('==' | '===' | '!=' | '!==') expression
     | expression bop = '&' expression
     | expression bop = '^' expression
     | expression bop = '|' expression
     | expression bop = '&&' expression
     | expression bop = '||' expression
-    | expression bop = '?' expression ':' expression
+    | expression top = '?' expression ':' expression
+    | expression bop = '|>' expression
     | <assoc = right> expression bop = (
         '='
         | '+='
@@ -159,8 +161,9 @@ expression:
         | '&='
         | '|='
         | '^='
-        | '>>='
         | '<<='
+        | '>>='
+        | '>>>='
         | '%='
     ) expression;
 
