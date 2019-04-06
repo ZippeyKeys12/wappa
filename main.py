@@ -13,7 +13,7 @@ def main():
     parser.buildParseTrees = True
 
     tree = parser.compilationUnit()
-    with open("output.txt", "w") as f:
+    with open("ex/zscript.txt", "w") as f:
         visitor = WappaVisitor(f)
         visitor.visit(tree)
 

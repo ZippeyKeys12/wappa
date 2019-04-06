@@ -13,7 +13,7 @@ compilationUnit: classDeclaration*;
 classDeclaration:
     classModifiers 'class' IDENTIFIER classParentDeclaration? classInterfaceDeclaration? classBlock;
 
-classModifiers: visibilityModifier? inheritanceModifier?;
+classModifiers: visibilityModifier? inheritanceModifier? scopeModifier?;
 
 classParentDeclaration:
     'extends' (IDENTIFIER | innerConstructorCall);
@@ -219,5 +219,7 @@ visibilityModifier:
     | 'public';
 
 inheritanceModifier: 'abstract' | 'final' | 'open';
+
+scopeModifier: 'play' | 'ui';
 
 identifierList: IDENTIFIER (',' IDENTIFIER)*;

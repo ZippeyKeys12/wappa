@@ -18,9 +18,8 @@ class BinaryOPExpression(Expression):
         exprR = self.exprR()
 
         if bop in ['**', '*', '/', '%', '+', '-', '<<', '>>', '>>>', '<=',
-                   '>=', '<', '>', 'is', '&', '^', '|', '&&', '||', '=', '+=',
-                   '-=', '*=', '/=', '&=', '|=', '^=', '<<=', '>>=', '>>>=',
-                   '%=']:
+                   '>=', '<', '>', '&', '^', '|', '&&', '||', '=', '+=', '-=',
+                   '*=', '/=', '&=', '|=', '^=', '<<=', '>>=', '>>>=', '%=']:
             return "({} {} {})".format(exprL, bop, exprR)
 
         converter = {
@@ -30,6 +29,9 @@ class BinaryOPExpression(Expression):
         }
         if bop in converter.keys():
             return "({} {} {})".format(exprL, converter[bop], exprR)
+
+        if bop == 'is':
+            return "{} is '{}'".format(exprL, exprR)
 
         if bop == '|>':
             return "({} ({}))".format(exprR, exprL)

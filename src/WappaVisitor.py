@@ -7,11 +7,7 @@ from src.structs import (BinaryOPExpression, Block, Class, DoUntilStatement,
                          DoWhileStatement, Expression, ExprStatement, Field,
                          Function, IfStatement, ReturnStatement, Statement,
                          TernaryOPExpression, UntilStatement, WhileStatement)
-
-
-def Exception(arg, tok):
-    print("{} at {}".format(arg, "Line {0.line}".format(tok)))
-    exit()
+from src.util import Exception
 
 
 class WappaVisitor(BaseVisitor):
@@ -22,7 +18,7 @@ class WappaVisitor(BaseVisitor):
         BaseVisitor.__init__(self)
 
     def visitCompilationUnit(self, ctx: Wappa.CompilationUnitContext):
-        self.file.write('version "3.8"')
+        self.file.write('version "3.7.2"')
 
         ret = self.visitChildren(ctx)
 
@@ -52,7 +48,8 @@ class WappaVisitor(BaseVisitor):
     def visitClassModifiers(self, ctx: Wappa.ClassModifiersContext):
         return (
             self.__safe_text(ctx.visibilityModifier()),
-            self.__safe_text(ctx.inheritanceModifier())
+            self.__safe_text(ctx.inheritanceModifier()),
+            self.__safe_text(ctx.scopeModifier())
         )
 
     def visitClassParentDeclaration(self,
@@ -64,11 +61,11 @@ class WappaVisitor(BaseVisitor):
             self.classes[ID].add_member(*self.visitChildren(member))
 
     def visitFieldDeclaration(self, ctx: Wappa.FieldDeclarationContext):
-        ID = ctx.variableDeclaratorId()
+        ID = ctx.variableDeclaratorId().getText()
 
-        return (ID, Field(ID, ctx.typeName(), ctx.staticTypedVar(),
-                          (ctx.visibilityModifier(),),
-                          ctx.literal() or ctx.innerConstructorCall()))
+        return (ctx, ID, Field(ID, ctx.typeName(), ctx.staticTypedVar(),
+                               (ctx.visibilityModifier(),),
+                               ctx.literal() or ctx.innerConstructorCall()))
 
     def visitFunctionModifiers(self, ctx: Wappa.FunctionModifiersContext
                                ) -> Optional[Tuple[
@@ -76,22 +73,21 @@ class WappaVisitor(BaseVisitor):
         if ctx is None:
             return None
 
-        return (
-            ctx.immutable is not None,
-            ctx.override is not None,
-            self.__safe_text(ctx.visibilityModifier()),
-            self.__safe_text(ctx.inheritanceModifier())
-        )
+        return (ctx.immutable is not None, ctx.override is not None,
+                self.__safe_text(ctx.visibilityModifier()),
+                self.__safe_text(ctx.inheritanceModifier())
+                )
 
     def visitFunctionDeclaration(self, ctx: Wappa.FunctionDeclarationContext
-                                 ) -> Tuple[str, Function]:
-        ID = ctx.IDENTIFIER()
+                                 ) -> Tuple[Wappa.FunctionDeclarationContext,
+                                            str, Function]:
+        ID = ctx.IDENTIFIER().getText()
         modifiers = self.visitFunctionModifiers(ctx.functionModifiers())
         parameters = self.visitParameterList(ctx.parameterList())
         ret_type = self.visitTypeOrVoid(ctx.typeOrVoid())
         block = self.visitBlock(ctx.block())
 
-        return (ID, Function(ID, modifiers, parameters, ret_type, block))
+        return (ctx, ID, Function(ID, modifiers, parameters, ret_type, block))
 
     def visitParameterList(self, ctx: Wappa.ParameterListContext
                            ) -> Optional[List[Tuple[str, str]]]:
@@ -184,11 +180,11 @@ class WappaVisitor(BaseVisitor):
         if ctx is None:
             return "void"
 
-        return self.__safe_text(ctx.typeName()) or "void"
+        return self.__safe_text(ctx.typeName(), default="void")
 
-    def __safe_text(self, ctx, func: str = "getText") -> Optional[str]:
+    def __safe_text(self, ctx, func: str = "getText", default="") -> str:
         if ctx is None:
-            return None
+            return default
 
         ret = getattr(ctx, func)()
         if ret is not None:

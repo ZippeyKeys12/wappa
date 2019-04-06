@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Iterable
 
 if TYPE_CHECKING:
-    from src.structs.Statement import Statement
+    from .Statement import Statement
 
 
 class Block:
