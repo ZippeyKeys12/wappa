@@ -5,7 +5,8 @@ from src.gen.Wappa import Wappa
 from src.gen.WappaVisitor import WappaVisitor as BaseVisitor
 from src.structs import (BinaryOPExpression, Block, Class, DoUntilStatement,
                          DoWhileStatement, Expression, ExprStatement, Field,
-                         Function, IfStatement, ReturnStatement, Statement,
+                         Function, IfStatement, PostfixOPExpression,
+                         PrefixOPExpression, ReturnStatement, Statement,
                          TernaryOPExpression, UntilStatement, WhileStatement)
 from src.util import Exception
 
@@ -156,6 +157,14 @@ class WappaVisitor(BaseVisitor):
         return ExprStatement(self.visitExpression(ctx.expression(0)))
 
     def visitExpression(self, ctx: Wappa.ExpressionContext):
+        if ctx.postfix is not None:
+            return PostfixOPExpression(
+                self.visitExpression(ctx.expression(0)), ctx.postfix.text)
+
+        if ctx.prefix is not None:
+            return PrefixOPExpression(
+                ctx.prefix.text, self.visitExpression(ctx.expression(0)))
+
         if ctx.bop is not None:
             return BinaryOPExpression(
                 self.visitExpression(ctx.expression(0)),
@@ -170,10 +179,10 @@ class WappaVisitor(BaseVisitor):
 
         return Expression(ctx.getText())
 
-    def visitIntegerLiteral(self, ctx: Wappa.IntegerLiteralContext):
+    def visitIntegerLiteral(self, ctx: Wappa.IntegerLiteralContext) -> int:
         return int(ctx.text)
 
-    def visitFloatLiteral(self, ctx: Wappa.FloatLiteralContext):
+    def visitFloatLiteral(self, ctx: Wappa.FloatLiteralContext) -> float:
         return float(ctx.text)
 
     def visitTypeOrVoid(self, ctx: Wappa.TypeOrVoidContext) -> str:
@@ -191,56 +200,3 @@ class WappaVisitor(BaseVisitor):
             return ret
 
         return self.visitChildren(ctx)
-
-    # def _get_expression(self, ctx: Wappa.ExpressionContext, i: int = None):
-    #     return self.visitExpression(ctx.expression(i))
-
-    # def visitExpression(self, ctx: Wappa.ExpressionContext):
-    #     if ctx.primary():
-    #         return self.visitPrimary(ctx.primary())
-
-    #     if ctx.prefix:
-    #         return self.visitChildren(ctx)
-
-    #     if ctx.bop:
-    #         bop = ctx.bop.text
-    #         if bop == "?":
-    #             if self._get_expression(ctx, 0):
-    #                 return self._get_expression(ctx, 1)
-    #             else:
-    #                 return self._get_expression(ctx, 2)
-    #         else:
-    #             return {
-    #                 "**": lambda a, b: a ** b,
-    #                 "*": lambda a, b: a * b,
-    #                 "/": lambda a, b: a / b,
-    #                 "%": lambda a, b: a % b,
-    #                 "+": lambda a, b: a + b,
-    #                 "-": lambda a, b: a - b,
-    #                 "<<": lambda a, b: a << b,
-    #                 ">>": lambda a, b: a >> b,
-    #                 "<=": lambda a, b: a <= b,
-    #                 ">=": lambda a, b: a >= b,
-    #                 ">": lambda a, b: a > b,
-    #                 "<": lambda a, b: a < b,
-    #                 "==": lambda a, b: a == b,
-    #                 "!=": lambda a, b: a != b,
-    #                 "&": lambda a, b: a & b,
-    #                 "^": lambda a, b: a ^ b,
-    #                 "|": lambda a, b: a | b,
-    #                 "&&": lambda a, b: a and b,
-    #                 "||": lambda a, b: a or b,
-    #             }[bop](
-    #                 self._get_expression(ctx, 0),
-    #                 self._get_expression(ctx, 1)
-    #             )
-    #         return self.visitChildren(ctx)
-
-    #     if ctx.postfix:
-    #         return self.visitChildren(ctx)
-
-    # def visitIntegerLiteral(self, ctx: Wappa.IntegerLiteralContext):
-    #     return int(ctx.getText())
-
-    # def visitFloatLiteral(self, ctx: Wappa.FloatLiteralContext):
-    #     return float(ctx.getText())

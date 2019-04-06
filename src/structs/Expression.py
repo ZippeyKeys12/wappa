@@ -6,6 +6,32 @@ class Expression:
         return self.text
 
 
+class PostfixOPExpression(Expression):
+    def __init__(self, expr, postfix):
+        self.expr = expr
+        self.postfix = postfix
+
+    def __call__(self):
+        if self.postfix in ['++', '--']:
+            return "({}{})".format(self.expr(), self.postfix)
+
+
+class PrefixOPExpression(Expression):
+    def __init__(self, prefix, expr):
+        self.prefix = prefix
+        self.expr = expr
+
+    def __call__(self):
+        expr = self.expr()
+
+        if self.prefix in [
+                '+', '++', '-', '--', '~', '!', 'alignof', 'sizeof']:
+            return "({}{})".format(self.prefix, expr)
+
+        if self.prefix == 'typeof':
+            return "({}.getClassName())".format(expr)
+
+
 class BinaryOPExpression(Expression):
     def __init__(self, exprL: Expression, bop, exprR: Expression):
         self.exprL = exprL

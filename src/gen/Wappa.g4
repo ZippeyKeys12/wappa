@@ -13,7 +13,8 @@ compilationUnit: classDeclaration*;
 classDeclaration:
     classModifiers 'class' IDENTIFIER classParentDeclaration? classInterfaceDeclaration? classBlock;
 
-classModifiers: visibilityModifier? inheritanceModifier? scopeModifier?;
+classModifiers:
+    visibilityModifier? inheritanceModifier? scopeModifier?;
 
 classParentDeclaration:
     'extends' (IDENTIFIER | innerConstructorCall);
@@ -210,7 +211,13 @@ staticTypedVar: 'var' | 'val';
 
 typeOrVoid: (typeName | 'void');
 
-typeName: IDENTIFIER;
+typeName: IDENTIFIER typeArguments? typeConstraints?;
+
+typeNameList: typeName (',' typeName)*;
+
+typeArguments: '<' typeNameList '>';
+
+typeConstraints: '[' /* TODO */ ']';
 
 visibilityModifier:
     'private'
