@@ -66,5 +66,5 @@ class TernaryOPExpression(Expression):
             return "({0} > {1} && {1} > {2})".format(exprL, exprC, exprR)
 
         else:
-            print("Error: Unhandled Binary Operator {}".format(top))
+            print("Error: Unhandled Ternary Operator {}".format(top))
             return top
