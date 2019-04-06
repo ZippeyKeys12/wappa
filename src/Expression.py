@@ -43,12 +43,28 @@ class BinaryOPExpression(Expression):
 
 
 class TernaryOPExpression(Expression):
-    def __init__(self, exprCond: Expression,
-                 exprIf: Expression, exprElse: Expression):
-        self.exprCond = exprCond
-        self.exprIf = exprIf
-        self.exprElse = exprElse
+    def __init__(self, exprL: Expression, top: str,
+                 exprC: Expression, exprR: Expression):
+        self.exprL = exprL
+        self.top = top
+        self.exprC = exprC
+        self.exprR = exprR
 
     def __call__(self) -> str:
-        return "({} ? {} : {})".format(
-            self.exprCond, self.exprIf, self.exprElse)
+        top = self.top
+        exprL = self.exprL()
+        exprC = self.exprC()
+        exprR = self.exprR()
+
+        if top == "?":
+            return "({} ? {} : {})".format(exprL, exprC, exprR)
+
+        elif top == "<":
+            return "({0} < {1} && {1} < {2})".format(exprL, exprC, exprR)
+
+        elif top == ">":
+            return "({0} > {1} && {1} > {2})".format(exprL, exprC, exprR)
+
+        else:
+            print("Error: Unhandled Binary Operator {}".format(top))
+            return top

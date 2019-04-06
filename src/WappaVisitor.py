@@ -166,11 +166,13 @@ class WappaVisitor(BaseVisitor):
     def visitExpression(self, ctx: Wappa.ExpressionContext):
         if ctx.bop is not None:
             return BinaryOPExpression(
-                self.visitExpression(ctx.expression(0)), ctx.bop.text,
+                self.visitExpression(ctx.expression(0)),
+                ctx.bop.text,
                 self.visitExpression(ctx.expression(1)))
 
         if ctx.top is not None:
             return TernaryOPExpression(self.visitExpression(ctx.expression(0)),
+                                       ctx.top.text,
                                        self.visitExpression(ctx.expression(1)),
                                        self.visitExpression(ctx.expression(2)))
 

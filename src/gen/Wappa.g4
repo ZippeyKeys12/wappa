@@ -141,6 +141,8 @@ expression:
     | expression bop = ( '*' | '/' | '%') expression
     | expression bop = ('+' | '-') expression
     | expression bop = ('<<' | '>>' | '>>>') expression
+    | expression top = '<' expression '<' expression
+    | expression top = '>' expression '>' expression
     | expression bop = ('<=' | '>=' | '>' | '<' | '<=>') expression
     | expression bop = 'is' typeName
     | expression bop = ('==' | '===' | '!=' | '!==') expression
