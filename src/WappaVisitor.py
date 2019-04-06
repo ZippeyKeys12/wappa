@@ -1,20 +1,20 @@
 from io import TextIOWrapper
-from typing import Any, Dict, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
 from src.gen.Wappa import Wappa
 from src.gen.WappaVisitor import WappaVisitor as BaseVisitor
 from src.structs import (BinaryOPExpression, Block, Class, DoUntilStatement,
                          DoWhileStatement, Expression, ExprStatement, Field,
                          Function, IfStatement, PostfixOPExpression,
-                         PrefixOPExpression, ReturnStatement, Statement,
+                         PrefixOPExpression, ReturnStatement, Scope, Statement,
                          TernaryOPExpression, UntilStatement, WhileStatement)
-from src.util import Exception
 
 
 class WappaVisitor(BaseVisitor):
     def __init__(self, file: TextIOWrapper):
         self.file = file
-        self.classes: Dict[str, Class] = {}
+        self.global_scope = Scope()
+        self.scope = [self.global_scope]
 
         BaseVisitor.__init__(self)
 
@@ -23,7 +23,7 @@ class WappaVisitor(BaseVisitor):
 
         ret = self.visitChildren(ctx)
 
-        for _, clazz in self.classes.items():
+        for _, clazz in self.global_scope.symbols():
             self.file.write(clazz())
 
         return ret
@@ -31,20 +31,23 @@ class WappaVisitor(BaseVisitor):
     def visitClassDeclaration(self, ctx: Wappa.ClassDeclarationContext):
         ID = str(ctx.IDENTIFIER())
 
-        if ID in self.classes:
-            Exception('Conflicting declaration of "{}"'.format(ID), ctx.start)
-
         parent = ctx.classParentDeclaration()
 
         if parent is not None:
             parent = self.visitClassParentDeclaration(parent)
 
-        self.classes[ID] = Class(
-            ID, parent, self.visitClassModifiers(ctx.classModifiers()))
+        cur_scope = self.scope[-1]
 
-        self.visitClassBlock(ctx.classBlock(), ID)
+        self.scope.append(Scope(parent=cur_scope))
 
-        # return self.classes[ID]
+        clazz = Class(self.scope[-1], ID, parent,
+                      self.visitClassModifiers(ctx.classModifiers()))
+
+        cur_scope.add_symbol(ctx.start, ID, clazz)
+
+        self.visitClassBlock(ctx.classBlock())
+
+        self.scope.pop()
 
     def visitClassModifiers(self, ctx: Wappa.ClassModifiersContext):
         return (
@@ -57,16 +60,17 @@ class WappaVisitor(BaseVisitor):
                                     ctx: Wappa.ClassParentDeclarationContext):
         return self.__safe_text(ctx, "IDENTIFIER")
 
-    def visitClassBlock(self, ctx: Wappa.ClassBlockContext, ID: str):
+    def visitClassBlock(self, ctx: Wappa.ClassBlockContext):
         for member in ctx.memberDeclaration():
-            self.classes[ID].add_member(*self.visitChildren(member))
+            self.scope[-1].owner.add_member(*self.visitChildren(member))
 
     def visitFieldDeclaration(self, ctx: Wappa.FieldDeclarationContext):
         ID = ctx.variableDeclaratorId().getText()
 
-        return (ctx, ID, Field(ID, ctx.typeName(), ctx.staticTypedVar(),
-                               (ctx.visibilityModifier(),),
-                               ctx.literal() or ctx.innerConstructorCall()))
+        return (ctx.start, ID, Field(
+            ID, ctx.typeName(), ctx.staticTypedVar(),
+            (ctx.visibilityModifier(),),
+            ctx.literal() or ctx.innerConstructorCall()))
 
     def visitFunctionModifiers(self, ctx: Wappa.FunctionModifiersContext
                                ) -> Optional[Tuple[
@@ -86,9 +90,15 @@ class WappaVisitor(BaseVisitor):
         modifiers = self.visitFunctionModifiers(ctx.functionModifiers())
         parameters = self.visitParameterList(ctx.parameterList())
         ret_type = self.visitTypeOrVoid(ctx.typeOrVoid())
+
+        self.scope.append(Scope(parent=self.scope[-1]))
+
         block = self.visitBlock(ctx.block())
 
-        return (ctx, ID, Function(ID, modifiers, parameters, ret_type, block))
+        self.scope.pop()
+
+        return (ctx.start,
+                ID, Function(ID, modifiers, parameters, ret_type, block))
 
     def visitParameterList(self, ctx: Wappa.ParameterListContext
                            ) -> Optional[List[Tuple[str, str]]]:
@@ -108,9 +118,8 @@ class WappaVisitor(BaseVisitor):
         if ctx.getText() == ';':
             return Statement()
 
-        statement_type: Any = ctx.statementType
-        if statement_type is not None:
-            statement_type = statement_type.text
+        if ctx.statementType is not None:
+            statement_type = ctx.statementType.text
             if statement_type == "if":
                 exprs = ctx.expression()
                 blocks = ctx.block()
