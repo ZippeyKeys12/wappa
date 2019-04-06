@@ -3,8 +3,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, List
 
 if TYPE_CHECKING:
-    from src.Block import Block
-    from src.Expression import Expression
+    from src.structs.Block import Block
+    from src.structs.Expression import Expression
 
 
 class Statement:

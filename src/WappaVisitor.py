@@ -1,16 +1,12 @@
 from io import TextIOWrapper
 from typing import Any, Dict, List, Optional, Tuple
 
-from src.Block import Block
-from src.Class import Class
-from src.Expression import Expression, BinaryOPExpression, TernaryOPExpression
-from src.Field import Field
-from src.Function import Function
 from src.gen.Wappa import Wappa
 from src.gen.WappaVisitor import WappaVisitor as BaseVisitor
-from src.Statement import (DoUntilStatement, DoWhileStatement, ExprStatement,
-                           IfStatement, ReturnStatement, Statement,
-                           UntilStatement, WhileStatement)
+from src.structs import (BinaryOPExpression, Block, Class, DoUntilStatement,
+                         DoWhileStatement, Expression, ExprStatement, Field,
+                         Function, IfStatement, ReturnStatement, Statement,
+                         TernaryOPExpression, UntilStatement, WhileStatement)
 
 
 def Exception(arg, tok):
@@ -177,6 +173,12 @@ class WappaVisitor(BaseVisitor):
                                        self.visitExpression(ctx.expression(2)))
 
         return Expression(ctx.getText())
+
+    def visitIntegerLiteral(self, ctx: Wappa.IntegerLiteralContext):
+        return int(ctx.text)
+
+    def visitFloatLiteral(self, ctx: Wappa.FloatLiteralContext):
+        return float(ctx.text)
 
     def visitTypeOrVoid(self, ctx: Wappa.TypeOrVoidContext) -> str:
         if ctx is None:

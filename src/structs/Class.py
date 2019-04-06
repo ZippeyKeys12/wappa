@@ -1,7 +1,7 @@
 from typing import Dict, Optional, Tuple
 
-from src.Field import Field
-from src.Function import Function
+from src.structs.Field import Field
+from src.structs.Function import Function
 
 
 class Class:

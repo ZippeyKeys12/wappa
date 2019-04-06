@@ -32,7 +32,7 @@ class BinaryOPExpression(Expression):
             return "({} {} {})".format(exprL, converter[bop], exprR)
 
         if bop == '|>':
-            return "({} ({}))".format(exprL, exprR)
+            return "({} ({}))".format(exprR, exprL)
 
         if bop == '**=':
             return "({0} = {0} ** {1})".format(exprL, exprR)
