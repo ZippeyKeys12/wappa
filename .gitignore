@@ -148,3 +148,6 @@ dmypy.json
 # Generated
 src/gen/*.py
 src/gen/*.tokens
+
+# Specific
+gzdoom_log.txt
