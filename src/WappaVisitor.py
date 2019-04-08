@@ -36,18 +36,10 @@ class WappaVisitor(BaseVisitor):
         if parent is not None:
             parent = self.visitClassParentDeclaration(parent)
 
-        cur_scope = self.scope[-1]
-
-        self.scope.append(Scope(parent=cur_scope))
-
-        clazz = Class(self.scope[-1], ID, parent,
-                      self.visitClassModifiers(ctx.classModifiers()))
-
-        cur_scope.add_symbol(ctx.start, ID, clazz)
-
-        self.visitClassBlock(ctx.classBlock())
-
-        self.scope.pop()
+        self.scope[-1].add_symbol(
+            ctx.start, ID, Class(
+                self.visitClassBlock(ctx.classBlock()), ID, parent,
+                self.visitClassModifiers(ctx.classModifiers())))
 
     def visitClassModifiers(self, ctx: Wappa.ClassModifiersContext):
         return (
@@ -61,13 +53,21 @@ class WappaVisitor(BaseVisitor):
         return self.__safe_text(ctx, "IDENTIFIER")
 
     def visitClassBlock(self, ctx: Wappa.ClassBlockContext):
+        scope = Scope(parent=self.scope[-1])
+
+        self.scope.append(scope)
+
         for member in ctx.memberDeclaration():
-            self.scope[-1].owner.add_member(*self.visitChildren(member))
+            self.visitChildren(member)
+
+        self.scope.pop()
+
+        return scope
 
     def visitFieldDeclaration(self, ctx: Wappa.FieldDeclarationContext):
         ID = ctx.variableDeclaratorId().getText()
 
-        return (ctx.start, ID, Field(
+        self.scope[-1].add_symbol(ctx.start, ID, Field(
             ID, ctx.typeName(), ctx.staticTypedVar(),
             (ctx.visibilityModifier(),),
             ctx.literal() or ctx.innerConstructorCall()))
@@ -83,22 +83,16 @@ class WappaVisitor(BaseVisitor):
                 self.__safe_text(ctx.inheritanceModifier())
                 )
 
-    def visitFunctionDeclaration(self, ctx: Wappa.FunctionDeclarationContext
-                                 ) -> Tuple[Wappa.FunctionDeclarationContext,
-                                            str, Function]:
+    def visitFunctionDeclaration(self, ctx: Wappa.FunctionDeclarationContext):
         ID = ctx.IDENTIFIER().getText()
         modifiers = self.visitFunctionModifiers(ctx.functionModifiers())
         parameters = self.visitParameterList(ctx.parameterList())
         ret_type = self.visitTypeOrVoid(ctx.typeOrVoid())
 
-        self.scope.append(Scope(parent=self.scope[-1]))
+        block, scope = self.visitBlock(ctx.block())
 
-        block = self.visitBlock(ctx.block())
-
-        self.scope.pop()
-
-        return (ctx.start,
-                ID, Function(ID, modifiers, parameters, ret_type, block))
+        self.scope[-1].add_symbol(ctx.start, ID, Function(
+            scope, ID, modifiers, parameters, ret_type, block))
 
     def visitParameterList(self, ctx: Wappa.ParameterListContext
                            ) -> Optional[List[Tuple[str, str]]]:
@@ -112,7 +106,14 @@ class WappaVisitor(BaseVisitor):
         return parameters
 
     def visitBlock(self, ctx: Wappa.BlockContext) -> Block:
-        return Block(map(self.visitStatement, ctx.statement()))
+        scope = Scope(parent=self.scope[-1])
+        self.scope.append(scope)
+
+        block = Block(map(self.visitStatement, ctx.statement()))
+
+        self.scope.pop()
+
+        return block, scope
 
     def visitStatement(self, ctx: Wappa.StatementContext) -> Statement:
         if ctx.getText() == ';':

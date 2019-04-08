@@ -33,6 +33,14 @@ class Scope:
                 Exception(
                     'ERROR', "Unknown identifier '{}'".format(ID), tok)
 
-    def symbols(self) -> Iterator[Tuple[str, Symbol]]:
+    def symbols(self, keys: bool = True, values: bool = True
+                ) -> Iterator[Union[str, Symbol, Tuple[str, Symbol]]]:
         for k, v in self.symbol_table.items():
-            yield (k, v)
+            if keys and values:
+                yield (k, v)
+
+            elif keys:
+                yield k
+
+            elif values:
+                yield v

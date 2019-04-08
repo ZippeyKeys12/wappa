@@ -125,9 +125,9 @@ expression:
     | expression bop = '.' (
         IDENTIFIER
         | functionCall
-        | 'self'
+        // | 'self'
         // | NEW nonWildcardTypeArguments? innerCreator
-        | 'super' superSuffix
+        // | 'super' superSuffix
         // | explicitGenericInvocation
     )
     | functionCall
