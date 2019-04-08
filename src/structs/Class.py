@@ -21,7 +21,7 @@ class Class:
     def get_member(self, tok: Token, name: str, ID: str):
         return self.scope.get_symbol(tok, ID)
 
-    def __call__(self) -> str:
+    def compile(self) -> str:
         ID = self.ID
         if self.parent is not None:
             ID = "{} : {}".format(ID, self.parent)
@@ -32,8 +32,8 @@ class Class:
             class {} {} {{
                 {}
             }}
-        """.format(ID, self.modifiers[2],
-                   "\n".join((f() for f in self.scope.symbols(keys=False))))
+        """.format(ID, self.modifiers[2], "\n".join((
+            f.compile() for f in self.scope.symbols(keys=False))))
 
     def __str__(self):
         return "{} {}".format(",".join(filter(

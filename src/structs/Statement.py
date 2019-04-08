@@ -11,7 +11,7 @@ class Statement:
     def __init__(self, text: str = ""):
         self.text = text
 
-    def __call__(self) -> str:
+    def compile(self) -> str:
         return self.text
 
 
@@ -21,30 +21,25 @@ class IfStatement(Statement):
                  elsif_blocks: List[Block] = None,
                  else_block: Block = None):
         self.if_expr = if_expr
-        self.if_block, self.if_scope = if_block
+        self.if_block = if_block
         self.elsif_exprs = elsif_exprs
         self.elsif_blocks = elsif_blocks
         self.else_block = else_block
 
-        if elsif_blocks is not None:
-            self.elsif_blocks, self.elsif_scopes = elsif_blocks
-
-        if else_block is not None:
-            self.else_block, self.else_scope = else_block
-
-    def __call__(self) -> str:
-        ret = "if ({}) {}".format(self.if_expr(), self.if_block())
+    def compile(self) -> str:
+        ret = "if ({}) {}".format(
+            self.if_expr.compile(), self.if_block.compile())
 
         exprs = self.elsif_exprs
         blocks = self.elsif_blocks
         if exprs is not None:
             for expr, block in zip(exprs, blocks):  # type: ignore
-                ret += "else if ({}) {}".format(expr,
-                                                block())
+                ret += "else if ({}) {}".format(expr.compile(),
+                                                block.compile())
 
         block = self.else_block
         if block is not None:
-            ret += "else {}".format(block())
+            ret += "else {}".format(block.compile())
 
         return ret
 
@@ -52,54 +47,58 @@ class IfStatement(Statement):
 class WhileStatement(Statement):
     def __init__(self, expr, block):
         self.expr = expr
-        self.block, self.scope = block
+        self.block = block
 
-    def __call__(self):
-        return "while ({}) {}".format(self.expr(), self.block())
+    def compile(self):
+        return "while ({}) {}".format(
+            self.expr.compile(), self.block.compile())
 
 
 class UntilStatement(Statement):
     def __init__(self, expr, block):
         self.expr = expr
-        self.block, self.scope = block
+        self.block = block
 
-    def __call__(self):
-        return "until ({}) {}".format(self.expr(), self.block())
+    def compile(self):
+        return "until ({}) {}".format(
+            self.expr.compile(), self.block.compile())
 
 
 class DoWhileStatement(Statement):
     def __init__(self, block, expr):
-        self.block, self.scope = block
+        self.block = block
         self.expr = expr
 
-    def __call__(self):
-        return "do {} while ({});".format(self.block(), self.expr())
+    def compile(self):
+        return "do {} while ({});".format(
+            self.block.compile(), self.expr.compile())
 
 
 class DoUntilStatement(Statement):
     def __init__(self, block, expr):
-        self.block, self.scope = block
+        self.block = block
         self.expr = expr
 
-    def __call__(self):
-        return "do {} until ({});".format(self.block(), self.expr())
+    def compile(self):
+        return "do {} until ({});".format(
+            self.block.compile(), self.expr.compile())
 
 
 class ReturnStatement(Statement):
     def __init__(self, expr: Expression = None):
         self.expr = expr
 
-    def __call__(self):
+    def compile(self):
         expr = self.expr
         if expr is None:
             return "return;"
         else:
-            return "return {};".format(expr())
+            return "return {};".format(expr.compile())
 
 
 class ExprStatement(Statement):
     def __init__(self, expr: Expression):
         self.expr = expr
 
-    def __call__(self):
-        return "{};".format(self.expr())
+    def compile(self):
+        return "{};".format(self.expr.compile())

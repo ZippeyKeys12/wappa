@@ -3,17 +3,19 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Iterable
 
 if TYPE_CHECKING:
-    from .Statement import Statement
+    from src.structs.Scope import Scope
+    from src.structs.Statement import Statement
 
 
 class Block:
-    def __init__(self, statements: Iterable[Statement]):
+    def __init__(self, scope: Scope, statements: Iterable[Statement]):
+        self.scope = scope
         self.statements = statements
 
-    def __call__(self) -> str:
+    def compile(self) -> str:
         statements: Any = self.statements
         if statements is not None:
-            statements = "".join((s() for s in statements))
+            statements = "".join((s.compile() for s in statements))
         else:
             statements = ""
 

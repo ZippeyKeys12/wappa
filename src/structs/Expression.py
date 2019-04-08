@@ -2,7 +2,7 @@ class Expression:
     def __init__(self, text):
         self.text = text
 
-    def __call__(self) -> str:
+    def compile(self) -> str:
         return self.text
 
 
@@ -11,9 +11,9 @@ class PostfixOPExpression(Expression):
         self.expr = expr
         self.postfix = postfix
 
-    def __call__(self):
+    def compile(self):
         if self.postfix in ['++', '--']:
-            return "({}{})".format(self.expr(), self.postfix)
+            return "({}{})".format(self.expr.compile(), self.postfix)
 
 
 class PrefixOPExpression(Expression):
@@ -21,8 +21,8 @@ class PrefixOPExpression(Expression):
         self.prefix = prefix
         self.expr = expr
 
-    def __call__(self):
-        expr = self.expr()
+    def compile(self):
+        expr = self.expr.compile()
 
         if self.prefix in [
                 '+', '++', '-', '--', '~', '!', 'alignof', 'sizeof']:
@@ -38,10 +38,10 @@ class BinaryOPExpression(Expression):
         self.bop = bop
         self.exprR = exprR
 
-    def __call__(self) -> str:
+    def compile(self) -> str:
         bop = self.bop
-        exprL = self.exprL()
-        exprR = self.exprR()
+        exprL = self.exprL.compile()
+        exprR = self.exprR.compile()
 
         if bop in ['**', '*', '/', '%', '+', '-', '<<', '>>', '>>>', '<=',
                    '>=', '<', '>', '&', '^', '|', '&&', '||', '=', '+=', '-=',
@@ -78,11 +78,11 @@ class TernaryOPExpression(Expression):
         self.exprC = exprC
         self.exprR = exprR
 
-    def __call__(self) -> str:
+    def compile(self) -> str:
         top = self.top
-        exprL = self.exprL()
-        exprC = self.exprC()
-        exprR = self.exprR()
+        exprL = self.exprL.compile()
+        exprC = self.exprC.compile()
+        exprR = self.exprR.compile()
 
         if top == "?":
             return "({} ? {} : {})".format(exprL, exprC, exprR)

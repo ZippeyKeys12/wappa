@@ -6,5 +6,5 @@ class Field:
                  modifiers: Tuple[str] = None, value=None):
         pass
 
-    def __call__(self) -> str:
+    def compile(self) -> str:
         return ""

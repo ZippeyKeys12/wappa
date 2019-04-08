@@ -24,7 +24,7 @@ class WappaVisitor(BaseVisitor):
         ret = self.visitChildren(ctx)
 
         for _, clazz in self.global_scope.symbols():
-            self.file.write(clazz())
+            self.file.write(clazz.compile())
 
         return ret
 
@@ -89,10 +89,10 @@ class WappaVisitor(BaseVisitor):
         parameters = self.visitParameterList(ctx.parameterList())
         ret_type = self.visitTypeOrVoid(ctx.typeOrVoid())
 
-        block, scope = self.visitBlock(ctx.block())
+        block = self.visitBlock(ctx.block())
 
         self.scope[-1].add_symbol(ctx.start, ID, Function(
-            scope, ID, modifiers, parameters, ret_type, block))
+            ID, modifiers, parameters, ret_type, block))
 
     def visitParameterList(self, ctx: Wappa.ParameterListContext
                            ) -> Optional[List[Tuple[str, str]]]:
@@ -109,11 +109,11 @@ class WappaVisitor(BaseVisitor):
         scope = Scope(parent=self.scope[-1])
         self.scope.append(scope)
 
-        block = Block(map(self.visitStatement, ctx.statement()))
+        block = Block(scope, map(self.visitStatement, ctx.statement()))
 
         self.scope.pop()
 
-        return block, scope
+        return block
 
     def visitStatement(self, ctx: Wappa.StatementContext) -> Statement:
         if ctx.getText() == ';':
