@@ -8,7 +8,8 @@ if TYPE_CHECKING:
 
 
 class Function:
-    def __init__(self, scope: Scope, ID: str, modifiers: Tuple[bool, bool, str, str],
+    def __init__(self, scope: Scope, ID: str,
+                 modifiers: Tuple[bool, bool, str, str],
                  parameters: List[Tuple[str, str]], ret_type: str,
                  block: Block):
         self.scope = scope

@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Dict, Optional, Tuple  # noqa
 
 from src.gen.Wappa import Token
-from src.util import Exception
 
 if TYPE_CHECKING:
     from src.structs.Scope import Scope
@@ -20,14 +19,7 @@ class Class:
         self.modifiers = modifiers
 
     def get_member(self, tok: Token, name: str, ID: str):
-        try:
-            return self.fields[ID]
-        except KeyError:
-            return self.functions[ID]
-        except KeyError:
-            Exception(
-                'ERROR', '{} does not have attribute: {}'.format(name, ID),
-                tok)
+        return self.scope.get_symbol(tok, ID)
 
     def __call__(self) -> str:
         ID = self.ID
