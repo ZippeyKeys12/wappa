@@ -17,7 +17,7 @@ classModifiers:
     visibilityModifier? inheritanceModifier? scopeModifier?;
 
 classParentDeclaration:
-    'extends' (IDENTIFIER | innerConstructorCall);
+    ':' (typeName | innerConstructorCall);
 
 classInterfaceDeclaration: 'implements' interfaceSpecifierList;
 
@@ -45,8 +45,8 @@ memberDeclaration: fieldDeclaration | functionDeclaration;
 
 fieldDeclaration:
     visibilityModifier? staticTypedVar variableDeclaratorId (
-        (':' typeName) ('=' ( literal | innerConstructorCall))?
-        | (':' typeName)? ('=' ( literal | innerConstructorCall))
+        ':' typeName ('=' ( literal | innerConstructorCall))?
+        | '=' ( literal | innerConstructorCall)
     ) ('{' (IDENTIFIER block)+ '}')? ';';
 
 //////////////
@@ -81,12 +81,10 @@ variableDeclarations:
     variableDeclaration (',' variableDeclaration)*;
 
 variableDeclaration:
-    (
-        staticTypedVar variableDeclaratorId (
-            ':' typeName
-            | '=' variableInitializer
-        )
-    ) ';';
+    staticTypedVar variableDeclaratorId (
+        ':' typeName ('=' variableInitializer)?
+        | ('=' variableInitializer)
+    );
 
 variableDeclaratorId: IDENTIFIER;
 
@@ -111,7 +109,7 @@ statement:
     | statementType = 'return' expression? ';'
     // | classDeclaration
     // | functionDeclaration
-    | variableDeclaration
+    | variableDeclarations ';'
     | ';'
     | expression ';';
 

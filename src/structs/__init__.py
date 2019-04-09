@@ -7,5 +7,6 @@ from .Function import Function
 from .Scope import Scope, Symbol
 from .Statement import (DoUntilStatement, DoWhileStatement, ExprStatement,
                         IfStatement, ReturnStatement, Statement,
-                        UntilStatement, WhileStatement)
+                        UntilStatement, VariableDeclarationStatement,
+                        WhileStatement)
 from .Variable import Variable

@@ -22,7 +22,6 @@ DO:    'do';
 ELSE:  'else';
 ELSIF: 'elsif';
 // ENUM:         'enum';
-EXTENDS: 'extends';
 FINAL:   'final';
 // FINALLY:      'finally';
 // FLOAT:        'float';

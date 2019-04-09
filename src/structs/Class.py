@@ -5,13 +5,13 @@ from typing import TYPE_CHECKING, Dict, Optional, Tuple  # noqa
 from src.gen.Wappa import Token
 
 if TYPE_CHECKING:
-    from src.structs.Scope import Scope
+    from src.structs import Scope
 
 
 class Class:
-    def __init__(self, scope: Scope, ID: str, parent: str,
-                 modifiers:
-                 Tuple[Optional[str], Optional[str], Optional[str]]):
+    def __init__(self, scope: Scope, ID: str, parent: Optional[Class],
+                 modifiers: Tuple[Optional[str], Optional[str], Optional[str]]
+                 ):
         self.scope = scope
         scope.owner = self
         self.ID = ID
@@ -24,7 +24,7 @@ class Class:
     def compile(self) -> str:
         ID = self.ID
         if self.parent is not None:
-            ID = "{} : {}".format(ID, self.parent)
+            ID = "{} : {}".format(ID, self.parent.ID)
 
         # modifiers = filter(lambda x: x is not None, self.modifiers)
 

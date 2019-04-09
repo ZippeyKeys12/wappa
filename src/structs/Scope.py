@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-from typing import Dict, Iterator, Tuple, Union
+from typing import Dict, List, Tuple, Union
 
 from src.gen.Wappa import Token
-from src.structs.Class import Class
-from src.structs.Field import Field
-from src.structs.Function import Function
+from src.structs import Class, Field, Function
+from src.util import Exception
 
 Symbol = Union[Class, Field, Function]
 
@@ -34,13 +33,16 @@ class Scope:
                     'ERROR', "Unknown identifier '{}'".format(ID), tok)
 
     def symbols(self, keys: bool = True, values: bool = True
-                ) -> Iterator[Union[str, Symbol, Tuple[str, Symbol]]]:
+                ) -> List[Union[str, Symbol, Tuple[str, Symbol]]]:
+        ret = []
         for k, v in self.symbol_table.items():
             if keys and values:
-                yield (k, v)
+                ret.append((k, v))
 
             elif keys:
-                yield k
+                ret.append(k)  # type: ignore
 
             elif values:
-                yield v
+                ret.append(v)
+
+        return ret  # type: ignore

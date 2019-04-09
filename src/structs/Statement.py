@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING, List, Optional
 
 if TYPE_CHECKING:
-    from src.structs.Block import Block
-    from src.structs.Expression import Expression
+    from src.structs import Block, Class, Expression
 
 
 class Statement:
@@ -94,6 +93,26 @@ class ReturnStatement(Statement):
             return "return;"
         else:
             return "return {};".format(expr.compile())
+
+
+class VariableDeclarationStatement(Statement):
+    def __init__(self, typed_var: str, var_type: Optional[Class], ID: str,
+                 initializer: Optional[Expression]):
+        self.typed_var = typed_var
+        self.var_type = var_type
+        self.ID = ID
+        self.initializer = initializer
+
+    def compile(self):
+        var_type = 'let'
+        if self.var_type:
+            var_type = self.var_type.ID
+
+        initializer = self.initializer
+        if initializer:
+            initializer = "= {};".format(initializer.compile())
+
+        return "{} {} {}".format(var_type, self.ID, initializer or ";")
 
 
 class ExprStatement(Statement):

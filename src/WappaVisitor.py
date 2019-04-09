@@ -7,7 +7,8 @@ from src.structs import (BinaryOPExpression, Block, Class, DoUntilStatement,
                          DoWhileStatement, Expression, ExprStatement, Field,
                          Function, IfStatement, PostfixOPExpression,
                          PrefixOPExpression, ReturnStatement, Scope, Statement,
-                         TernaryOPExpression, UntilStatement, WhileStatement)
+                         TernaryOPExpression, UntilStatement, Variable,
+                         VariableDeclarationStatement, WhileStatement)
 
 
 class WappaVisitor(BaseVisitor):
@@ -50,7 +51,7 @@ class WappaVisitor(BaseVisitor):
 
     def visitClassParentDeclaration(self,
                                     ctx: Wappa.ClassParentDeclarationContext):
-        return self.__safe_text(ctx, "IDENTIFIER")
+        return self.visitTypeName(ctx.typeName())
 
     def visitClassBlock(self, ctx: Wappa.ClassBlockContext):
         scope = Scope(parent=self.scope[-1])
@@ -95,15 +96,37 @@ class WappaVisitor(BaseVisitor):
             ID, modifiers, parameters, ret_type, block))
 
     def visitParameterList(self, ctx: Wappa.ParameterListContext
-                           ) -> Optional[List[Tuple[str, str]]]:
+                           ) -> Optional[List[Tuple[str, Optional[str]]]]:
         if ctx is None:
             return None
 
-        parameters: List[Tuple[str, str]] = []
+        parameters: List[Tuple[str, Optional[str]]] = []
         for ID, object_type in zip(ctx.IDENTIFIER(), ctx.typeOrVoid()):
             parameters.append((str(ID), self.visitTypeOrVoid(object_type)))
 
         return parameters
+
+    def visitVariableDeclaration(self, ctx: Wappa.VariableDeclarationContext):
+        var_type = ctx.staticTypedVar().getText()
+
+        if var_type == 'var':
+            var_type = self.visitTypeName(ctx.typeName())
+            name = self.visitVariableDeclaratorId(ctx.variableDeclaratorId())
+            self.scope[-1].add_symbol(
+                ctx.start, name, Variable(var_type, name))
+            initializer = self.visitVariableInitializer(
+                ctx.variableInitializer())
+
+            return VariableDeclarationStatement(
+                'var', var_type, name, initializer)
+
+    def visitVariableDeclaratorId(
+            self, ctx: Wappa.VariableDeclaratorIdContext):
+        return ctx.IDENTIFIER()
+
+    def visitVariableInitializer(self, ctx: Wappa.VariableInitializerContext
+                                 ) -> Expression:
+        return self.visitExpression(ctx.expression())
 
     def visitBlock(self, ctx: Wappa.BlockContext) -> Block:
         scope = Scope(parent=self.scope[-1])
@@ -164,7 +187,11 @@ class WappaVisitor(BaseVisitor):
             elif statement_type == "return":
                 return ReturnStatement(self.visitExpression(ctx.expression(0)))
 
-        return ExprStatement(self.visitExpression(ctx.expression(0)))
+        if ctx.variableDeclarations():
+            return self.visitVariableDeclarations(ctx.variableDeclarations())
+
+        if ctx.expression(0):
+            return ExprStatement(self.visitExpression(ctx.expression(0)))
 
     def visitExpression(self, ctx: Wappa.ExpressionContext):
         if ctx.postfix is not None:
@@ -195,11 +222,18 @@ class WappaVisitor(BaseVisitor):
     def visitFloatLiteral(self, ctx: Wappa.FloatLiteralContext) -> float:
         return float(ctx.text)
 
-    def visitTypeOrVoid(self, ctx: Wappa.TypeOrVoidContext) -> str:
+    def visitTypeOrVoid(self, ctx: Wappa.TypeOrVoidContext) -> Optional[str]:
         if ctx is None:
-            return "void"
+            return None
 
-        return self.__safe_text(ctx.typeName(), default="void")
+        type_name = ctx.typeName()
+        if type_name:
+            return self.visitTypeName(type_name)
+
+        return None
+
+    def visitTypeName(self, ctx: Wappa.TypeNameContext):
+        return self.scope[-1].get_symbol(ctx.start, ctx.getText())
 
     def __safe_text(self, ctx, func: str = "getText", default="") -> str:
         if ctx is None:
