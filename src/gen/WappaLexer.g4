@@ -173,9 +173,9 @@ URSHIFT_ASSIGN: '>>>=';
 // Whitespace and comments
 //
 
-WS: [ \r\n\t\u000C]+ -> skip;
-// COMMENT:      '/*' .*? '*/'             -> skip;
-LINE_COMMENT: '#' ~[\r\n\u2028\u2029]* -> skip;
+WS:      [ \r\n\t\u000C]+ -> skip;
+COMMENT: '/*' .*? '*/'    -> skip;
+// LINE_COMMENT: '#' ~[\r\n\u2028\u2029]* -> skip;
 
 //
 // Fragment rules

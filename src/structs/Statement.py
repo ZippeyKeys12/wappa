@@ -115,6 +115,14 @@ class VariableDeclarationStatement(Statement):
         return "{} {} {}".format(var_type, self.ID, initializer or ";")
 
 
+class VariableDeclarationsStatement(Statement):
+    def __init__(self, var_statements: List[VariableDeclarationStatement]):
+        self.var_statements = var_statements
+
+    def compile(self):
+        return "".join((x.compile() for x in self.var_statements))
+
+
 class ExprStatement(Statement):
     def __init__(self, expr: Expression):
         self.expr = expr

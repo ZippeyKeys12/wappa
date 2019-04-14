@@ -10,6 +10,7 @@ class Function:
     def __init__(self, ID: str, modifiers: Tuple[bool, bool, str, str],
                  parameters: List[Tuple[str, Class]],
                  ret_type: Optional[Class], block: Block):
+        self.scope = block.scope
         self.ID = ID
         self.parameters = parameters
         self.ret_type = ret_type
@@ -29,3 +30,17 @@ class Function:
         return """
             {} {} ({}) {}
         """.format(ret_type, self.ID, parameters, self.block.compile())
+
+
+class NativeFunction(Function):
+    def __init__(self, ID, parameters: List[Tuple[str, Class]],
+                 ret_type: Optional[Class]):
+        self.ID = ID
+        self.parameters = parameters
+        self.ret_type = ret_type
+
+    def inline(self, args: List[str]) -> str:
+        return ""
+
+    def compile(self) -> str:
+        return ""

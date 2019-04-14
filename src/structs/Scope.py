@@ -10,21 +10,21 @@ Symbol = Union[Class, Field, Function]
 
 
 class Scope:
-    def __init__(self, owner: Symbol = None, parent: Scope = None):
-        self.owner = owner
+    def __init__(self, parent: Scope = None):
         self.parent = parent
         self.symbol_table: Dict[str, Symbol] = {}
 
     def add_symbol(self, tok: Token, ID: str, symbol: Symbol):
-        if ID in self.symbol_table.keys():
+        if ID.lower() in self.symbol_table.keys():
             Exception(
                 'ERROR', "Conflicting declaration of '{}'".format(ID), tok)
+            print("self:{}".format(self.symbols(values=False)))
 
-        self.symbol_table[ID] = symbol
+        self.symbol_table[ID.lower()] = symbol
 
     def get_symbol(self, tok: Token, ID: str):
         try:
-            return self.symbol_table[ID]
+            return self.symbol_table[ID.lower()]
         except KeyError:
             if self.parent is not None:
                 return self.parent.get_symbol(tok, ID)
@@ -34,15 +34,19 @@ class Scope:
 
     def symbols(self, keys: bool = True, values: bool = True
                 ) -> List[Union[str, Symbol, Tuple[str, Symbol]]]:
-        ret = []
-        for k, v in self.symbol_table.items():
-            if keys and values:
-                ret.append((k, v))
+        if keys and values:
+            return [(k, v) for k, v in self.symbol_table.items()]
 
-            elif keys:
-                ret.append(k)  # type: ignore
+        if keys:
+            return [k for k, v in self.symbol_table.items()]
 
-            elif values:
-                ret.append(v)
+        if values:
+            return [v for k, v in self.symbol_table.items()]
 
-        return ret  # type: ignore
+        raise ValueError("At least one of keys or values must be True")
+
+    def depth(self):
+        if self.parent:
+            return 1 + self.parent.depth()
+
+        return 1

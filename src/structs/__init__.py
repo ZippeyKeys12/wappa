@@ -4,10 +4,10 @@ from .Expression import (BinaryOPExpression, Expression,
                          FunctionCallExpression, PostfixOPExpression,
                          PrefixOPExpression, TernaryOPExpression)
 from .Field import Field
-from .Function import Function
+from .Function import Function, NativeFunction
 from .Scope import Scope, Symbol
 from .Statement import (DoUntilStatement, DoWhileStatement, ExprStatement,
                         IfStatement, ReturnStatement, Statement,
-                        UntilStatement, VariableDeclarationStatement,
-                        WhileStatement)
+                        UntilStatement, VariableDeclarationsStatement,
+                        VariableDeclarationStatement, WhileStatement)
 from .Variable import Variable
