@@ -31,14 +31,13 @@ class IfStatement(Statement):
 
         exprs = self.elsif_exprs
         blocks = self.elsif_blocks
-        if exprs is not None:
-            for expr, block in zip(exprs, blocks):  # type: ignore
+        if exprs is not None and blocks is not None:
+            for expr, block in zip(exprs, blocks):
                 ret += "else if ({}) {}".format(expr.compile(minify),
                                                 block.compile(minify))
 
-        block = self.else_block  # type: ignore
-        if block is not None:
-            ret += "else {}".format(block.compile(minify))
+        if self.else_block is not None:
+            ret += "else {}".format(self.else_block.compile(minify))
 
         return ret
 
