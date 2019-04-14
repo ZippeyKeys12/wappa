@@ -22,7 +22,7 @@ DO:    'do';
 ELSE:  'else';
 ELSIF: 'elsif';
 // ENUM:         'enum';
-FINAL:   'final';
+FINAL: 'final';
 // FINALLY:      'finally';
 // FLOAT:        'float';
 FOR: 'for';
@@ -150,6 +150,7 @@ ADD:            '+';
 SUB:            '-';
 MUL:            '*';
 DIV:            '/';
+INT_DIV:        '//';
 BITAND:         '&';
 BITOR:          '|';
 CARET:          '^';
@@ -159,6 +160,7 @@ SUB_ASSIGN:     '-=';
 POW_ASSIGN:     '**=';
 MUL_ASSIGN:     '*=';
 DIV_ASSIGN:     '/=';
+INT_DIV_ASSIGN: '//=';
 AND_ASSIGN:     '&=';
 OR_ASSIGN:      '|=';
 XOR_ASSIGN:     '^=';
@@ -171,9 +173,9 @@ URSHIFT_ASSIGN: '>>>=';
 // Whitespace and comments
 //
 
-WS:           [ \r\n\t\u000C]+          -> skip;
-COMMENT:      '/*' .*? '*/'             -> skip;
-LINE_COMMENT: '//' ~[\r\n\u2028\u2029]* -> skip;
+WS: [ \r\n\t\u000C]+ -> skip;
+// COMMENT:      '/*' .*? '*/'             -> skip;
+LINE_COMMENT: '#' ~[\r\n\u2028\u2029]* -> skip;
 
 //
 // Fragment rules

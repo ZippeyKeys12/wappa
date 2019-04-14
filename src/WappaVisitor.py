@@ -5,8 +5,9 @@ from src.gen.Wappa import Wappa
 from src.gen.WappaVisitor import WappaVisitor as BaseVisitor
 from src.structs import (BinaryOPExpression, Block, Class, DoUntilStatement,
                          DoWhileStatement, Expression, ExprStatement, Field,
-                         Function, IfStatement, PostfixOPExpression,
-                         PrefixOPExpression, ReturnStatement, Scope, Statement,
+                         Function, FunctionCallExpression, IfStatement,
+                         PostfixOPExpression, PrefixOPExpression,
+                         ReturnStatement, Scope, Statement,
                          TernaryOPExpression, UntilStatement, Variable,
                          VariableDeclarationStatement, WhileStatement)
 
@@ -85,7 +86,7 @@ class WappaVisitor(BaseVisitor):
                 )
 
     def visitFunctionDeclaration(self, ctx: Wappa.FunctionDeclarationContext):
-        ID = ctx.IDENTIFIER().getText()
+        ID = str(ctx.IDENTIFIER())
         modifiers = self.visitFunctionModifiers(ctx.functionModifiers())
         parameters = self.visitParameterList(ctx.parameterList())
         ret_type = self.visitTypeOrVoid(ctx.typeOrVoid())
@@ -105,6 +106,31 @@ class WappaVisitor(BaseVisitor):
             parameters.append((str(ID), self.visitTypeOrVoid(object_type)))
 
         return parameters
+
+    def visitFunctionCall(self, ctx: Wappa.FunctionCallContext) -> Expression:
+        ID = str(ctx.IDENTIFIER())
+
+        args = None
+        if ctx.expressionList():
+            args = self.visitExpressionList(ctx.expressionList())
+
+        kwargs = None
+        if ctx.functionKwarguments():
+            kwargs = self.visitFunctionKwarguments(ctx.functionKwarguments())
+
+        return FunctionCallExpression(
+            ID, args, kwargs, self.scope[-1].get_symbol(
+                ctx.start, ID).ret_type)
+
+    def visitFunctionKwarguments(self, ctx: Wappa.FunctionKwargumentsContext
+                                 ) -> List[Tuple[str, Expression]]:
+        return [
+            self.visitFunctionKwargument(k) for k in ctx.functionKwargument()]
+
+    def visitFunctionKwargument(self, ctx: Wappa.FunctionKwargumentContext
+                                ) -> Tuple[str, Expression]:
+        return (str(ctx.IDENTIFIER()),
+                self.visitExpression(ctx.expression()))
 
     def visitVariableDeclaration(self, ctx: Wappa.VariableDeclarationContext):
         var_type = ctx.staticTypedVar().getText()
@@ -193,7 +219,17 @@ class WappaVisitor(BaseVisitor):
         if ctx.expression(0):
             return ExprStatement(self.visitExpression(ctx.expression(0)))
 
+    def visitExpressionList(
+            self, ctx: Wappa.ExpressionListContext) -> List[Expression]:
+        return [self.visitExpression(e) for e in ctx.expression()]
+
     def visitExpression(self, ctx: Wappa.ExpressionContext):
+        if ctx.primary():
+            return self.visitPrimary(ctx.primary())
+
+        if ctx.functionCall():
+            return self.visitFunctionCall(ctx.functionCall())
+
         if ctx.postfix is not None:
             return PostfixOPExpression(
                 self.visitExpression(ctx.expression(0)), ctx.postfix.text)
@@ -214,13 +250,19 @@ class WappaVisitor(BaseVisitor):
                                        self.visitExpression(ctx.expression(1)),
                                        self.visitExpression(ctx.expression(2)))
 
-        return Expression(ctx.getText())
+        print("Fatal: Unhandled Expression {}".format(ctx.getText()))
 
-    def visitIntegerLiteral(self, ctx: Wappa.IntegerLiteralContext) -> int:
-        return int(ctx.text)
+    def visitPrimary(self, ctx: Wappa.PrimaryContext):
+        if ctx.expression():
+            return self.visitExpression(ctx.expression())
 
-    def visitFloatLiteral(self, ctx: Wappa.FloatLiteralContext) -> float:
-        return float(ctx.text)
+        if ctx.IDENTIFIER():
+            return Expression(str(ctx.IDENTIFIER()))
+
+        if ctx.literal():
+            return Expression(ctx.literal().getText())
+
+        return self.visitChildren(ctx)
 
     def visitTypeOrVoid(self, ctx: Wappa.TypeOrVoidContext) -> Optional[str]:
         if ctx is None:

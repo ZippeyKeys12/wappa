@@ -16,15 +16,14 @@ classDeclaration:
 classModifiers:
     visibilityModifier? inheritanceModifier? scopeModifier?;
 
-classParentDeclaration:
-    ':' (typeName | innerConstructorCall);
+classParentDeclaration: ':' (typeName | innerConstructorCall);
 
 classInterfaceDeclaration: 'implements' interfaceSpecifierList;
 
 interfaceSpecifierList:
     interfaceSpecifier (',' interfaceSpecifier)*;
 
-interfaceSpecifier: IDENTIFIER (BY IDENTIFIER)?;
+interfaceSpecifier: IDENTIFIER (BY functionCall)?;
 
 innerConstructorCallList:
     innerConstructorCall (',' innerConstructorCall)*;
@@ -65,13 +64,12 @@ parameterList:
     IDENTIFIER ':' typeOrVoid (',' IDENTIFIER ':' typeOrVoid)*;
 
 functionCall:
-    IDENTIFIER '(' functionArguments? ')'
-    | 'self' '(' functionArguments? ')'
-    | 'super' '(' functionArguments? ')';
+    IDENTIFIER '(' expressionList? functionKwarguments? ')';
 
-functionArguments: functionArgument (',' functionArgument)*;
+functionKwarguments:
+    functionKwargument (',' functionKwargument)*;
 
-functionArgument: (IDENTIFIER ':')? expression;
+functionKwargument: IDENTIFIER ':' expression;
 
 //////////////
 // Variable //
@@ -98,7 +96,7 @@ block: '{' statement* '}';
 
 statement:
     blockLabel = block
-    | statementType = 'if' '(' expression ')' block (
+    | statementType = 'if' expression block (
         'elsif' '(' expression ')' block
     )* ('else' block)?
     | statementType = 'for' '(' forControl ')' block
@@ -129,15 +127,15 @@ expression:
         // | explicitGenericInvocation
     )
     | functionCall
-    | classDeclaration
-    | typeName arguments
+    // | classDeclaration
+    // | typeName arguments
     | expression 'as' typeName
     | expression postfix = ('++' | '--')
     | prefix = ('+' | '-' | '++' | '--') expression
     | prefix = ('~' | '!') expression
     | prefix = ('alignof' | 'sizeof' | 'typeof') expression
     | expression bop = '**' expression
-    | expression bop = ( '*' | '/' | '%') expression
+    | expression bop = ('*' | '//' | '/' | '%') expression
     | expression bop = ('+' | '-') expression
     | expression bop = ('<<' | '>>' | '>>>') expression
     | expression top = '<' expression '<' expression
@@ -158,6 +156,7 @@ expression:
         | '-='
         | '**='
         | '*='
+        | '//='
         | '/='
         | '&='
         | '|='
