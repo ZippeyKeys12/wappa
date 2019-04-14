@@ -11,12 +11,15 @@ class Block:
         self.scope = scope
         self.statements = statements
 
-    def compile(self) -> str:
+    def compile(self, minify: bool = False) -> str:
         statements: Any = self.statements
         if statements is not None:
-            statements = "".join((s.compile() for s in statements))
+            statements = "".join([s.compile(minify) for s in statements])
         else:
             statements = ""
+
+        if minify:
+            return "{{{}}}".format(statements)
 
         return """
             {{

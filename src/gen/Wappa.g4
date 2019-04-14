@@ -61,7 +61,7 @@ functionDeclaration:
     )? block;
 
 parameterList:
-    IDENTIFIER ':' typeOrVoid (',' IDENTIFIER ':' typeOrVoid)*;
+    IDENTIFIER ':' typeName (',' IDENTIFIER ':' typeName)*;
 
 functionCall:
     IDENTIFIER '(' expressionList? functionKwarguments? ')';

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, List, Tuple
+from typing import TYPE_CHECKING, Any, List, Tuple
 
 if TYPE_CHECKING:
     from src.structs import Class
@@ -13,7 +13,7 @@ class Expression:
     def typeof(self):
         raise NotImplementedError("'typeof' not implemented")
 
-    def compile(self) -> str:
+    def compile(self, minify: bool = False) -> str:
         return self.text
 
 
@@ -25,15 +25,15 @@ class FunctionCallExpression(Expression):
         self.kwargs = kwargs
         self.ret_type = ret_type
 
-    def compile(self):
+    def compile(self, minify: bool = False) -> str:
         args = ""
         if self.args:
-            args = ",".join((x.compile() for x in self.args))
+            args = ",".join([x.compile(minify) for x in self.args])
 
         kwargs = ""
         if self.kwargs:
-            kwargs = ",".join(("{}:{}".format(x[0], x[1].compile())
-                               for x in self.kwargs))
+            kwargs = ",".join(["{}:{}".format(x[0], x[1].compile(minify))
+                               for x in self.kwargs])
 
             if self.args:
                 kwargs = "," + kwargs
@@ -49,9 +49,14 @@ class PostfixOPExpression(Expression):
     def typeof(self):
         return self.expr.typeof()
 
-    def compile(self):
-        if self.postfix in ['++', '--']:
-            return "({}{})".format(self.expr.compile(), self.postfix)
+    def compile(self, minify: bool = False) -> str:
+        uop = self.postfix
+
+        if uop in ['++', '--']:
+            return "({}{})".format(self.expr.compile(minify), uop)
+
+        print("Fatal: Unhandled Postfix Operator {}".format(uop))
+        return uop
 
 
 class PrefixOPExpression(Expression):
@@ -59,15 +64,19 @@ class PrefixOPExpression(Expression):
         self.prefix = prefix
         self.expr = expr
 
-    def compile(self):
-        expr = self.expr.compile()
+    def compile(self, minify: bool = False) -> str:
+        uop = self.prefix
+        expr = self.expr.compile(minify)
 
-        if self.prefix in [
+        if uop in [
                 '+', '++', '-', '--', '~', '!', 'alignof', 'sizeof']:
-            return "({}{})".format(self.prefix, expr)
+            return "({}{})".format(uop, expr)
 
-        if self.prefix == 'typeof':
+        if uop == 'typeof':
             return "({}.getClassName())".format(expr)
+
+        print("Fatal: Unhandled Prefix Operator {}".format(uop))
+        return uop
 
 
 class BinaryOPExpression(Expression):
@@ -76,15 +85,20 @@ class BinaryOPExpression(Expression):
         self.bop = bop
         self.exprR = exprR
 
-    def compile(self) -> str:
+    def compile(self, minify: bool = False) -> str:
+        data: Any
         bop = self.bop
-        exprL = self.exprL.compile()
-        exprR = self.exprR.compile()
+        exprL = self.exprL.compile(minify)
+        exprR = self.exprR.compile(minify)
 
         if bop in ['**', '*', '%', '+', '-', '<<', '>>', '>>>', '<=', '>=',
                    '<', '>', '&', '^', '|', '&&', '||', '=', '+=', '-=', '*=',
                    '&=', '|=', '^=', '<<=', '>>=', '>>>=', '%=']:
-            return "({} {} {})".format(exprL, bop, exprR)
+            data = (exprL, bop, exprR)
+            if minify:
+                return "({}{}{})".format(*data)
+
+            return "({} {} {})".format(*data)
 
         converter = {
             '//': '/',
@@ -94,7 +108,12 @@ class BinaryOPExpression(Expression):
             '//=': '/='
         }
         if bop in converter.keys():
-            return "({} {} {})".format(exprL, converter[bop], exprR)
+            data = (exprL, converter[bop], exprR)
+
+            if minify:
+                return "({}{}{})".format(*data)
+
+            return "({} {} {})".format(*data)
 
         if bop == '/':
             return "({}/double({}))".format(exprL, exprR)
@@ -103,13 +122,23 @@ class BinaryOPExpression(Expression):
             return "{} is '{}'".format(exprL, exprR)
 
         if bop == '|>':
-            return "({} ({}))".format(exprR, exprL)
+            return "({}({}))".format(exprR, exprL)
 
         if bop == '**=':
-            return "({0} = {0} ** {1})".format(exprL, exprR)
+            data = (exprL, exprR)
+
+            if minify:
+                return "({0}={0}**{1})".format(*data)
+
+            return "({0} = {0} ** {1})".format(*data)
 
         if bop == '/=':
-            return "({0} = {0} / double({1}))".format(exprL, exprR)
+            data = (exprL, exprR)
+
+            if minify:
+                return "({0}={0}/double({1}))".format(*data)
+
+            return "({0} = {0} / double({1}))".format(*data)
 
         print("Fatal: Unhandled Binary Operator {}".format(bop))
         return bop
@@ -123,20 +152,29 @@ class TernaryOPExpression(Expression):
         self.exprC = exprC
         self.exprR = exprR
 
-    def compile(self) -> str:
+    def compile(self, minify: bool = False) -> str:
         top = self.top
-        exprL = self.exprL.compile()
-        exprC = self.exprC.compile()
-        exprR = self.exprR.compile()
+        data = (self.exprL.compile(minify),
+                self.exprC.compile(minify),
+                self.exprR.compile(minify))
 
         if top == "?":
-            return "({} ? {} : {})".format(exprL, exprC, exprR)
+            if minify:
+                return "({}?{}:{})".format(*data)
+
+            return "({} ? {} : {})".format(*data)
 
         elif top == "<":
-            return "({0} < {1} && {1} < {2})".format(exprL, exprC, exprR)
+            if minify:
+                return "({0}<{1}&&{1}<{2})".format(*data)
+
+            return "({0} < {1} && {1} < {2})".format(*data)
 
         elif top == ">":
-            return "({0} > {1} && {1} > {2})".format(exprL, exprC, exprR)
+            if minify:
+                return "({0}>{1}&&{1}>{2})".format(*data)
+
+            return "({0} > {1} && {1} > {2})".format(*data)
 
         else:
             print("Error: Unhandled Ternary Operator {}".format(top))

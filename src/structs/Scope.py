@@ -1,16 +1,18 @@
 from __future__ import annotations
 
-from typing import Dict, List, Tuple, Union
+from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union
 
 from src.gen.Wappa import Token
-from src.structs import Class, Field, Function
 from src.util import Exception
 
-Symbol = Union[Class, Field, Function]
+if TYPE_CHECKING:
+    from src.structs import Class, Field, Function, Variable
+    Symbol = Union[Class, Field, Function, Variable]
 
 
 class Scope:
     def __init__(self, parent: Scope = None):
+        self.owner: Optional[Symbol] = None
         self.parent = parent
         self.symbol_table: Dict[str, Symbol] = {}
 
@@ -18,7 +20,6 @@ class Scope:
         if ID.lower() in self.symbol_table.keys():
             Exception(
                 'ERROR', "Conflicting declaration of '{}'".format(ID), tok)
-            print("self:{}".format(self.symbols(values=False)))
 
         self.symbol_table[ID.lower()] = symbol
 
@@ -32,7 +33,7 @@ class Scope:
                 Exception(
                     'ERROR', "Unknown identifier '{}'".format(ID), tok)
 
-    def symbols(self, keys: bool = True, values: bool = True
+    def symbols(self, keys: bool = False, values: bool = False
                 ) -> List[Union[str, Symbol, Tuple[str, Symbol]]]:
         if keys and values:
             return [(k, v) for k, v in self.symbol_table.items()]

@@ -7,7 +7,8 @@ if TYPE_CHECKING:
 
 
 class Function:
-    def __init__(self, ID: str, modifiers: Tuple[bool, bool, str, str],
+    def __init__(self, ID: str,
+                 modifiers: Tuple[bool, bool, Optional[str], Optional[str]],
                  parameters: List[Tuple[str, Class]],
                  ret_type: Optional[Class], block: Block):
         self.scope = block.scope
@@ -19,7 +20,7 @@ class Function:
     def inline(self, args: List[str]) -> str:
         return ""
 
-    def compile(self) -> str:
+    def compile(self, minify: bool = False) -> str:
         parameters = ",".join(
             ("{} {}".format(x[0], x[1].ID) for x in self.parameters))
 
@@ -27,9 +28,14 @@ class Function:
         if self.ret_type:
             ret_type = self.ret_type.ID
 
+        data = (ret_type, self.ID, parameters, self.block.compile(minify))
+
+        if minify:
+            return "{} {}({}){}".format(*data)
+
         return """
             {} {} ({}) {}
-        """.format(ret_type, self.ID, parameters, self.block.compile())
+        """.format(*data)
 
 
 class NativeFunction(Function):
@@ -42,5 +48,5 @@ class NativeFunction(Function):
     def inline(self, args: List[str]) -> str:
         return ""
 
-    def compile(self) -> str:
+    def compile(self, minify: bool = False) -> str:
         return ""

@@ -5,7 +5,7 @@ from .Expression import (BinaryOPExpression, Expression,
                          PrefixOPExpression, TernaryOPExpression)
 from .Field import Field
 from .Function import Function, NativeFunction
-from .Scope import Scope, Symbol
+from .Scope import Scope
 from .Statement import (DoUntilStatement, DoWhileStatement, ExprStatement,
                         IfStatement, ReturnStatement, Statement,
                         UntilStatement, VariableDeclarationsStatement,

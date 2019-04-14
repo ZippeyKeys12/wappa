@@ -1,8 +1,6 @@
 from antlr4 import CommonTokenStream, FileStream
 
-from src.gen.Wappa import Wappa
-from src.gen.WappaLexer import WappaLexer
-from src.WappaVisitor import WappaVisitor
+from src import Wappa, WappaLexer, WappaMinifier, WappaVisitor
 
 
 def main():
@@ -12,10 +10,17 @@ def main():
     parser = Wappa(tokens)
     parser.buildParseTrees = True
 
+    minify = False
     tree = parser.compilationUnit()
+    visitor = WappaVisitor(minify)
+    text = visitor.visit(tree)
+
+    if minify:
+        minifier = WappaMinifier()
+        text = minifier.zscript(text)
+
     with open("ex/zscript.txt", "w") as f:
-        visitor = WappaVisitor(f)
-        visitor.visit(tree)
+        f.write(text)
 
 
 if __name__ == "__main__":

@@ -1,5 +1,4 @@
-from io import TextIOWrapper
-from typing import List, Optional, Tuple
+from typing import Any, List, Optional, Tuple
 
 from src.gen.Wappa import Wappa
 from src.gen.WappaVisitor import WappaVisitor as BaseVisitor
@@ -14,8 +13,8 @@ from src.structs import (BinaryOPExpression, Block, Class, DoUntilStatement,
 
 
 class WappaVisitor(BaseVisitor):
-    def __init__(self, file: TextIOWrapper):
-        self.file = file
+    def __init__(self, minify: bool = False):
+        self.minify = minify
         self.global_scope = Scope()
         self.scope = [self.global_scope]
 
@@ -24,15 +23,15 @@ class WappaVisitor(BaseVisitor):
 
         BaseVisitor.__init__(self)
 
+    def visit(self, tree):
+        BaseVisitor.visit(self, tree)
+
+        return 'version "3.7.2"\n{}'.format("".join([
+            clazz.compile(self.minify) for clazz in self.global_scope.symbols(
+                values=True)]))
+
     def visitCompilationUnit(self, ctx: Wappa.CompilationUnitContext):
-        self.file.write('version "3.7.2"')
-
-        ret = self.visitChildren(ctx)
-
-        for _, clazz in self.global_scope.symbols():
-            self.file.write(clazz.compile())
-
-        return ret
+        return self.visitChildren(ctx)
 
     def visitClassDeclaration(self, ctx: Wappa.ClassDeclarationContext):
         ID = str(ctx.IDENTIFIER())
@@ -50,11 +49,6 @@ class WappaVisitor(BaseVisitor):
         self.scope.append(scope)
 
         self.visitClassBlock(ctx.classBlock())
-
-        print("START2")
-        for i in self.scope:
-            print(i.symbols(values=False))
-        print("END2")
 
         self.scope.pop()
 
@@ -87,10 +81,10 @@ class WappaVisitor(BaseVisitor):
             ctx.literal() or ctx.innerConstructorCall()))
 
     def visitFunctionModifiers(self, ctx: Wappa.FunctionModifiersContext
-                               ) -> Optional[Tuple[
-                                   bool, bool, Optional[str], Optional[str]]]:
+                               ) -> Tuple[
+                                   bool, bool, Optional[str], Optional[str]]:
         if ctx is None:
-            return None
+            return (False, False, None, None)
 
         return (ctx.immutable is not None, ctx.override is not None,
                 self.__safe_text(ctx.visibilityModifier()),
@@ -109,24 +103,24 @@ class WappaVisitor(BaseVisitor):
             ID, modifiers, parameters, ret_type, block))
 
     def visitParameterList(self, ctx: Wappa.ParameterListContext
-                           ) -> Optional[List[Tuple[str, Optional[str]]]]:
+                           ) -> List[Tuple[str, Class]]:
         if ctx is None:
-            return None
+            return []
 
-        parameters: List[Tuple[str, Optional[str]]] = []
-        for ID, object_type in zip(ctx.IDENTIFIER(), ctx.typeOrVoid()):
-            parameters.append((str(ID), self.visitTypeOrVoid(object_type)))
+        parameters: List[Tuple[str, Class]] = []
+        for ID, object_type in zip(ctx.IDENTIFIER(), ctx.typeName()):
+            parameters.append((str(ID), self.visitTypeName(object_type)))
 
         return parameters
 
     def visitFunctionCall(self, ctx: Wappa.FunctionCallContext) -> Expression:
         ID = str(ctx.IDENTIFIER())
 
-        args = None
+        args: List[Expression] = []
         if ctx.expressionList():
             args = self.visitExpressionList(ctx.expressionList())
 
-        kwargs = None
+        kwargs: List[Tuple[str, Expression]] = []
         if ctx.functionKwarguments():
             kwargs = self.visitFunctionKwarguments(ctx.functionKwarguments())
 
@@ -156,8 +150,8 @@ class WappaVisitor(BaseVisitor):
             var_type = self.visitTypeName(ctx.typeName())
             name = self.visitVariableDeclaratorId(ctx.variableDeclaratorId())
 
-            self.scope[-1].add_symbol(
-                ctx.start, name, Variable(var_type, name))
+            self.scope[-1].add_symbol(ctx.start, name,
+                                      Variable(var_type, name))
 
             initializer = self.visitVariableInitializer(
                 ctx.variableInitializer())
@@ -178,10 +172,6 @@ class WappaVisitor(BaseVisitor):
         self.scope.append(scope)
 
         block = Block(scope, list(map(self.visitStatement, ctx.statement())))
-        print("START1")
-        for i in self.scope:
-            print(i.symbols(values=False))
-        print("END1")
 
         self.scope.pop()
 
@@ -197,7 +187,7 @@ class WappaVisitor(BaseVisitor):
                 exprs = ctx.expression()
                 blocks = ctx.block()
 
-                else_block = len(exprs) < len(blocks)
+                else_block: Any = len(exprs) < len(blocks)
 
                 elsif_exprs = elsif_blocks = None
                 if len(exprs) > 1:
@@ -241,6 +231,9 @@ class WappaVisitor(BaseVisitor):
 
         if ctx.expression(0):
             return ExprStatement(self.visitExpression(ctx.expression(0)))
+
+        print("Fatal: Unhandled Exprssion {}".format(ctx.getText()))
+        return ctx
 
     def visitExpressionList(
             self, ctx: Wappa.ExpressionListContext) -> List[Expression]:
@@ -287,7 +280,7 @@ class WappaVisitor(BaseVisitor):
 
         return self.visitChildren(ctx)
 
-    def visitTypeOrVoid(self, ctx: Wappa.TypeOrVoidContext) -> Optional[str]:
+    def visitTypeOrVoid(self, ctx: Wappa.TypeOrVoidContext) -> Optional[Class]:
         if ctx is None:
             return None
 

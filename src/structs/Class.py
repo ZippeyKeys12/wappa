@@ -21,19 +21,24 @@ class Class:
     def get_member(self, tok: Token, name: str, ID: str):
         return self.scope.get_symbol(tok, ID)
 
-    def compile(self) -> str:
+    def compile(self, minify: bool = False) -> str:
         ID = self.ID
         if self.parent is not None:
             ID = "{} : {}".format(ID, self.parent.ID)
 
         # modifiers = filter(lambda x: x is not None, self.modifiers)
 
+        data = ID, self.modifiers[2], " ".join([
+            f.compile(minify) for f in self.scope.symbols(values=True)])  # type: ignore # noqa
+
+        if minify:
+            return "class {} {}{{{}}}".format(*data)
+
         return """
             class {} {} {{
                 {}
             }}
-        """.format(ID, self.modifiers[2], "\n".join((
-            f.compile() for f in self.scope.symbols(keys=False))))
+        """.format(*data)
 
     def __str__(self):
         return "{} {}".format(",".join(filter(

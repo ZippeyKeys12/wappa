@@ -3,5 +3,5 @@ class Variable:
         self.var_type = var_type
         self.ID = ID
 
-    def compile(self):
+    def compile(self, minify: bool = False) -> str:
         return ""
