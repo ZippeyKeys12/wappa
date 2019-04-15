@@ -3,7 +3,9 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, List, Optional, Any
 
 if TYPE_CHECKING:
-    from src.structs import Block, Class, Expression
+    from src.structs.Block import Block
+    from src.structs.Class import Class
+    from src.structs.Expression import Expression
 
 
 class Statement:

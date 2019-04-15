@@ -3,7 +3,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, List, Optional, Tuple
 
 if TYPE_CHECKING:
-    from src.structs import Block, Class
+    from src.structs.Block import Block
+    from src.structs.Class import Class
 
 
 class Function:

@@ -2,14 +2,23 @@ from typing import Any, List, Optional, Tuple
 
 from src.gen.Wappa import Wappa
 from src.gen.WappaVisitor import WappaVisitor as BaseVisitor
-from src.structs import (BinaryOPExpression, Block, Class, DoUntilStatement,
-                         DoWhileStatement, Expression, ExprStatement, Field,
-                         Function, FunctionCallExpression, IfStatement,
-                         NativeFunction, PostfixOPExpression,
-                         PrefixOPExpression, ReturnStatement, Scope, Statement,
-                         TernaryOPExpression, UntilStatement, Variable,
-                         VariableDeclarationsStatement,
-                         VariableDeclarationStatement, WhileStatement)
+from src.stdlib import init_stdlib
+from src.structs.Block import Block
+from src.structs.Class import Class
+from src.structs.Expression import (BinaryOPExpression, Expression,
+                                    FunctionCallExpression,
+                                    PostfixOPExpression, PrefixOPExpression,
+                                    TernaryOPExpression)
+from src.structs.Field import Field
+from src.structs.Function import Function
+from src.structs.Scope import Scope
+from src.structs.Statement import (DoUntilStatement, DoWhileStatement,
+                                   ExprStatement, IfStatement, ReturnStatement,
+                                   Statement, UntilStatement,
+                                   VariableDeclarationsStatement,
+                                   VariableDeclarationStatement,
+                                   WhileStatement)
+from src.structs.Variable import Variable
 
 
 class WappaVisitor(BaseVisitor):
@@ -18,8 +27,7 @@ class WappaVisitor(BaseVisitor):
         self.global_scope = Scope()
         self.scope = [self.global_scope]
 
-        self.global_scope.add_symbol(
-            None, "print", NativeFunction("console.printf", [], None))
+        init_stdlib(self.global_scope)
 
         BaseVisitor.__init__(self)
 

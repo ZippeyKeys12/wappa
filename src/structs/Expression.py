@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, List, Tuple
 
 if TYPE_CHECKING:
-    from src.structs import Class
+    from src.structs.Class import Class
 
 
 class Expression:

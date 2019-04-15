@@ -1,11 +1,13 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Dict, Optional, Tuple  # noqa
+from typing import TYPE_CHECKING, Optional, Tuple
 
 from src.gen.Wappa import Token
+from src.structs.Field import Field
 
 if TYPE_CHECKING:
     from src.structs import Scope
+    from src.structs.Scope import Symbol
 
 
 class Class:
@@ -18,18 +20,25 @@ class Class:
         self.parent = parent
         self.modifiers = modifiers
 
-    def get_member(self, tok: Token, name: str, ID: str):
+    def get_member(self, tok: Token, name: str, ID: str) -> Symbol:
         return self.scope.get_symbol(tok, ID)
 
     def compile(self, minify: bool = False) -> str:
         ID = self.ID
-        if self.parent is not None:
+
+        if self.parent:
             ID = "{} : {}".format(ID, self.parent.ID)
 
         # modifiers = filter(lambda x: x is not None, self.modifiers)
 
+        symbols = self.scope.symbols(values=True)
+
+        for s in symbols:
+            if isinstance(s, Field):
+                pass
+
         data = ID, self.modifiers[2], " ".join([
-            f.compile(minify) for f in self.scope.symbols(values=True)])  # type: ignore # noqa
+            f.compile(minify) for f in symbols])  # type: ignore # noqa
 
         if minify:
             return "class {} {}{{{}}}".format(*data)
