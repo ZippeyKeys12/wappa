@@ -206,7 +206,7 @@ floatLiteral: FLOAT_LITERAL | HEX_FLOAT_LITERAL;
 
 staticTypedVar: 'var' | 'val';
 
-typeOrVoid: (typeName | 'void');
+typeOrVoid: typeName | 'void';
 
 typeName: IDENTIFIER typeArguments? typeConstraints?;
 

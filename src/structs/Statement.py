@@ -28,18 +28,33 @@ class IfStatement(Statement):
         self.else_block = else_block
 
     def compile(self, minify: bool = False) -> str:
-        ret = "if ({}) {}".format(
-            self.if_expr.compile(minify), self.if_block.compile(minify))
+        data: Any = (self.if_expr.compile(minify),
+                     self.if_block.compile(minify))
+
+        if minify:
+            ret = "if({}){}".format(*data)
+        else:
+            ret = "if ({}) {}".format(*data)
 
         exprs = self.elsif_exprs
         blocks = self.elsif_blocks
         if exprs is not None and blocks is not None:
             for expr, block in zip(exprs, blocks):
-                ret += "else if ({}) {}".format(expr.compile(minify),
-                                                block.compile(minify))
+                data = (expr.compile(minify), block.compile(minify))
+
+                if minify:
+                    ret += "else if({}){}".format(*data)
+                else:
+                    ret += "else if ({}) {}".format(*data)
 
         if self.else_block is not None:
-            ret += "else {}".format(self.else_block.compile(minify))
+            data = self.else_block.compile(minify)
+
+            if minify:
+                ret += "else{}".format(*data)
+
+            else:
+                ret += "else {}".format(*data)
 
         return ret
 

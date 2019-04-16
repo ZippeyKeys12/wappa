@@ -19,7 +19,7 @@ def main():
         minifier = WappaMinifier()
         text = minifier.zscript(text)
 
-    with open("ex/zscript.txt", "w") as f:
+    with open("ex/zscript.zsc", "w") as f:
         f.write(text)
 
 
