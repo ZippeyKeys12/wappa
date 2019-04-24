@@ -4,19 +4,20 @@ from typing import TYPE_CHECKING, Optional, Tuple
 
 from src.gen.Wappa import Token
 from src.structs.Field import Field
+from src.structs.Type import WappaType
 
 if TYPE_CHECKING:
-    from src.structs import Scope
-    from src.structs.Scope import Symbol
+    from src.structs.Scope import Scope, Symbol
 
 
-class Class:
+class Class(WappaType):
     def __init__(self, scope: Scope, ID: str, parent: Optional[Class],
                  modifiers: Tuple[Optional[str], Optional[str], Optional[str]]
                  ):
+        WappaType.__init__(self, ID)
+
         self.scope = scope
         scope.owner = self
-        self.ID = ID
         self.parent = parent
         self.modifiers = modifiers
 

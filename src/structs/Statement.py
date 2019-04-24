@@ -4,8 +4,8 @@ from typing import TYPE_CHECKING, List, Optional, Any
 
 if TYPE_CHECKING:
     from src.structs.Block import Block
-    from src.structs.Class import Class
     from src.structs.Expression import Expression
+    from src.structs.Type import WappaType
 
 
 class Statement:
@@ -112,7 +112,7 @@ class ReturnStatement(Statement):
 
 
 class VariableDeclarationStatement(Statement):
-    def __init__(self, typed_var: str, var_type: Optional[Class], ID: str,
+    def __init__(self, typed_var: str, var_type: Optional[WappaType], ID: str,
                  initializer: Optional[Expression]):
         self.typed_var = typed_var
         self.var_type = var_type

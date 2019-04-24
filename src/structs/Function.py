@@ -4,14 +4,14 @@ from typing import TYPE_CHECKING, List, Optional, Tuple
 
 if TYPE_CHECKING:
     from src.structs.Block import Block
-    from src.structs.Class import Class
+    from src.structs.Type import WappaType
 
 
 class Function:
     def __init__(self, ID: str,
                  modifiers: Tuple[bool, bool, Optional[str], Optional[str]],
-                 parameters: List[Tuple[str, Class]],
-                 ret_type: Optional[Class], block: Block):
+                 parameters: List[Tuple[str, WappaType]],
+                 ret_type: Optional[WappaType], block: Block):
         self.scope = block.scope
         self.ID = ID
         self.parameters = parameters
@@ -40,8 +40,8 @@ class Function:
 
 
 class NativeFunction(Function):
-    def __init__(self, ID, parameters: List[Tuple[str, Class]],
-                 ret_type: Optional[Class]):
+    def __init__(self, ID, parameters: List[Tuple[str, WappaType]],
+                 ret_type: Optional[WappaType]):
         self.ID = ID
         self.parameters = parameters
         self.ret_type = ret_type

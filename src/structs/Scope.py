@@ -6,12 +6,12 @@ from src.gen.Wappa import Token
 from src.util import Exception
 
 if TYPE_CHECKING:
-    from src.structs.Class import Class
     from src.structs.Field import Field
     from src.structs.Function import Function
+    from src.structs.Type import WappaType
     from src.structs.Variable import Variable
 
-    Symbol = Union[Class, Field, Function, Variable]
+    Symbol = Union[WappaType, Field, Function, Variable]
 
 
 class Scope:

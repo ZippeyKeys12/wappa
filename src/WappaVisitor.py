@@ -6,9 +6,9 @@ from src.stdlib import init_stdlib
 from src.structs.Block import Block
 from src.structs.Class import Class
 from src.structs.Expression import (BinaryOPExpression, Expression,
-                                    FunctionCallExpression,
+                                    FunctionCallExpression, Literal,
                                     PostfixOPExpression, PrefixOPExpression,
-                                    TernaryOPExpression)
+                                    Reference, TernaryOPExpression)
 from src.structs.Field import Field
 from src.structs.Function import Function
 from src.structs.Scope import Scope
@@ -18,6 +18,8 @@ from src.structs.Statement import (DoUntilStatement, DoWhileStatement,
                                    VariableDeclarationsStatement,
                                    VariableDeclarationStatement,
                                    WhileStatement)
+from src.structs.Type import (BooleanType, FloatType, IntType, NilType,
+                              StringType, WappaType)
 from src.structs.Variable import Variable
 
 
@@ -91,9 +93,6 @@ class WappaVisitor(BaseVisitor):
     def visitFunctionModifiers(self, ctx: Wappa.FunctionModifiersContext
                                ) -> Tuple[
                                    bool, bool, Optional[str], Optional[str]]:
-        if ctx is None:
-            return (False, False, None, None)
-
         return (ctx.immutable is not None, ctx.override is not None,
                 self.__safe_text(ctx.visibilityModifier()),
                 self.__safe_text(ctx.inheritanceModifier())
@@ -102,8 +101,14 @@ class WappaVisitor(BaseVisitor):
     def visitFunctionDeclaration(self, ctx: Wappa.FunctionDeclarationContext):
         ID = str(ctx.IDENTIFIER())
         modifiers = self.visitFunctionModifiers(ctx.functionModifiers())
-        parameters = self.visitParameterList(ctx.parameterList())
-        ret_type = self.visitTypeOrVoid(ctx.typeOrVoid())
+
+        parameters: List[Tuple[str, WappaType]] = []
+        if ctx.parameterList():
+            parameters = self.visitParameterList(ctx.parameterList())
+
+        ret_type = None
+        if ctx.typeOrVoid():
+            ret_type = self.visitTypeOrVoid(ctx.typeOrVoid())
 
         block = self.visitBlock(ctx.block())
 
@@ -111,11 +116,8 @@ class WappaVisitor(BaseVisitor):
             ID, modifiers, parameters, ret_type, block))
 
     def visitParameterList(self, ctx: Wappa.ParameterListContext
-                           ) -> List[Tuple[str, Class]]:
-        if ctx is None:
-            return []
-
-        parameters: List[Tuple[str, Class]] = []
+                           ) -> List[Tuple[str, WappaType]]:
+        parameters: List[Tuple[str, WappaType]] = []
         for ID, object_type in zip(ctx.IDENTIFIER(), ctx.typeName()):
             parameters.append((str(ID), self.visitTypeName(object_type)))
 
@@ -134,7 +136,7 @@ class WappaVisitor(BaseVisitor):
 
         ref = self.scope[-1].get_symbol(ctx.start, ID)
 
-        return FunctionCallExpression(ref.ID, args, kwargs, ref.ret_type)
+        return FunctionCallExpression(ref, args, kwargs)
 
     def visitFunctionKwarguments(self, ctx: Wappa.FunctionKwargumentsContext
                                  ) -> List[Tuple[str, Expression]]:
@@ -155,14 +157,18 @@ class WappaVisitor(BaseVisitor):
         var_type = ctx.staticTypedVar().getText()
 
         if var_type == 'var':
-            var_type = self.visitTypeName(ctx.typeName())
             name = self.visitVariableDeclaratorId(ctx.variableDeclaratorId())
+
+            initializer = self.visitVariableInitializer(
+                ctx.variableInitializer())
 
             self.scope[-1].add_symbol(ctx.start, name,
                                       Variable(var_type, name))
 
-            initializer = self.visitVariableInitializer(
-                ctx.variableInitializer())
+            if ctx.typeName():
+                var_type = self.visitTypeName(ctx.typeName())
+            else:
+                var_type = initializer.type_of()
 
             return VariableDeclarationStatement(
                 'var', var_type, name, initializer)
@@ -247,7 +253,7 @@ class WappaVisitor(BaseVisitor):
             self, ctx: Wappa.ExpressionListContext) -> List[Expression]:
         return [self.visitExpression(e) for e in ctx.expression()]
 
-    def visitExpression(self, ctx: Wappa.ExpressionContext):
+    def visitExpression(self, ctx: Wappa.ExpressionContext) -> Expression:
         if ctx.primary():
             return self.visitPrimary(ctx.primary())
 
@@ -274,24 +280,47 @@ class WappaVisitor(BaseVisitor):
                                        self.visitExpression(ctx.expression(1)),
                                        self.visitExpression(ctx.expression(2)))
 
-        print("Fatal: Unhandled Expression {}".format(ctx.getText()))
+        Exception("FATAL", "Unhandled Expression: {}".format(ctx.getText()),
+                  ctx.start)
+        exit(0)
 
     def visitPrimary(self, ctx: Wappa.PrimaryContext):
         if ctx.expression():
             return self.visitExpression(ctx.expression())
 
-        if ctx.IDENTIFIER():
-            return Expression(str(ctx.IDENTIFIER()))
+        ID = ctx.IDENTIFIER()
+        if ID:
+            return Reference(self.scope[-1].get_symbol(ctx.start, str(ID)))
 
         if ctx.literal():
-            return Expression(ctx.literal().getText())
+            return self.visitLiteral(ctx.literal())
 
         return self.visitChildren(ctx)
 
-    def visitTypeOrVoid(self, ctx: Wappa.TypeOrVoidContext) -> Optional[Class]:
-        if ctx is None:
-            return None
+    def visitLiteral(self, ctx: Wappa.LiteralContext) -> Literal:
+        text = ctx.getText()
 
+        if ctx.integerLiteral():
+            return Literal(text, IntType)
+
+        if ctx.floatLiteral():
+            return Literal(text, FloatType)
+
+        if ctx.STRING_LITERAL():
+            return Literal(text, StringType)
+
+        if ctx.BOOL_LITERAL():
+            return Literal(text, BooleanType)
+
+        if ctx.NIL_LITERAL():
+            return Literal(text, NilType)
+
+        Exception("FATAL", "Unhandled Literal: {}".format(ctx.getText()),
+                  ctx.start)
+        exit(0)
+
+    def visitTypeOrVoid(
+            self, ctx: Wappa.TypeOrVoidContext) -> Optional[WappaType]:
         type_name = ctx.typeName()
         if type_name:
             return self.visitTypeName(type_name)
