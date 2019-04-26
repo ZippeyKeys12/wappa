@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, List, Optional, Tuple
 
+from src.gen.Wappa import Token
 from src.structs.Field import Field
-from src.structs.Type import (BooleanType, IntType, StringType, TypeType,
-                              WappaType)
+from src.structs.Type import BoolType, IntType, StringType, TypeType, WappaType
 from src.structs.Variable import Variable
 
 if TYPE_CHECKING:
@@ -13,31 +13,41 @@ if TYPE_CHECKING:
 
 
 class Expression:
-    def __init__(self, text):
+    def __init__(self, tok: Token, text: str):
+        self.tok = tok
         self.text = text
 
     def type_of(self) -> Optional[WappaType]:
         raise NotImplementedError(
             "'type_of' not implemented for {}".format(type(self)))
 
+    def type_check(self):
+        raise NotImplementedError(
+            "'type_check' not implemented for {}".format(type(self)))
+
     def compile(self, minify: bool = False) -> str:
         return self.text
 
 
 class Literal(Expression):
-    def __init__(self, text: str, lit_type: WappaType):
+    def __init__(self, tok: Token, text: str, lit_type: WappaType):
+        self.tok = tok
         self.text = text
         self.lit_type = lit_type
 
     def type_of(self) -> Optional[WappaType]:
         return self.lit_type
 
-    def compile(self, minify=False) -> str:
+    def type_check(self):
+        pass
+
+    def compile(self, minify: bool = False) -> str:
         return self.text
 
 
 class Reference(Expression):
-    def __init__(self, ref: Symbol):
+    def __init__(self, tok: Token, ref: Symbol):
+        self.tok = tok
         self.ref = ref
 
     def type_of(self) -> Optional[WappaType]:
@@ -52,19 +62,26 @@ class Reference(Expression):
 
         return None
 
-    def compile(self, minify=False) -> str:
+    def type_check(self):
+        pass
+
+    def compile(self, minify: bool = False) -> str:
         return self.ref.ID
 
 
 class FunctionCallExpression(Expression):
-    def __init__(self, ref: Function, args: List[Expression],
+    def __init__(self, tok: Token, ref: Function, args: List[Expression],
                  kwargs: List[Tuple[str, Expression]]):
+        self.tok = tok
         self.ref = ref
         self.args = args
         self.kwargs = kwargs
 
     def type_of(self) -> Optional[WappaType]:
         return self.ref.ret_type
+
+    def type_check(self):
+        pass
 
     def compile(self, minify: bool = False) -> str:
         args = ""
@@ -83,7 +100,8 @@ class FunctionCallExpression(Expression):
 
 
 class PostfixOPExpression(Expression):
-    def __init__(self, expr, postfix):
+    def __init__(self, tok: Token, expr, postfix):
+        self.tok = tok
         self.expr = expr
         self.postfix = postfix
 
@@ -101,7 +119,8 @@ class PostfixOPExpression(Expression):
 
 
 class PrefixOPExpression(Expression):
-    def __init__(self, prefix, expr):
+    def __init__(self, tok: Token, prefix, expr):
+        self.tok = tok
         self.prefix = prefix
         self.expr = expr
 
@@ -131,7 +150,8 @@ class PrefixOPExpression(Expression):
 
 
 class BinaryOPExpression(Expression):
-    def __init__(self, exprL: Expression, bop, exprR: Expression):
+    def __init__(self, tok: Token, exprL: Expression, bop, exprR: Expression):
+        self.tok = tok
         self.exprL = exprL
         self.bop = bop
         self.exprR = exprR
@@ -140,7 +160,7 @@ class BinaryOPExpression(Expression):
         bop = self.bop
 
         if bop in ['&&', '||',  '<=>', '==', '===', '!=', '!==', 'is']:
-            return BooleanType
+            return BoolType
 
         if bop in ['=', '+=', '-=', '*=', '**=', '/=', '//=', '&=', '|=', '^=',
                    '<<=', '>>=', '>>>=', '%=', '|>']:
@@ -215,8 +235,9 @@ class BinaryOPExpression(Expression):
 
 
 class TernaryOPExpression(Expression):
-    def __init__(self, exprL: Expression, top: str,
+    def __init__(self, tok: Token, exprL: Expression, top: str,
                  exprC: Expression, exprR: Expression):
+        self.tok = tok
         self.exprL = exprL
         self.top = top
         self.exprC = exprC
@@ -229,7 +250,7 @@ class TernaryOPExpression(Expression):
             return self.exprC.type_of()
 
         if top in ['<', '>']:
-            return BooleanType
+            return BoolType
 
     def compile(self, minify: bool = False) -> str:
         top = self.top

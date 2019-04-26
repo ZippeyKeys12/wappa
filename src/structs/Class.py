@@ -21,7 +21,7 @@ class Class(WappaType):
         self.parent = parent
         self.modifiers = modifiers
 
-    def get_member(self, tok: Token, name: str, ID: str) -> Symbol:
+    def get_member(self, tok: Token, ID: str) -> Symbol:
         return self.scope.get_symbol(tok, ID)
 
     def compile(self, minify: bool = False) -> str:

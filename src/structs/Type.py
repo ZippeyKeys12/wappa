@@ -1,6 +1,19 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from src.gen.Wappa import Token
+    from src.structs.Scope import Symbol
+
+
 class WappaType:
     def __init__(self, ID: str):
         self.ID = ID
+
+    def get_member(self, tok: Token, ID: str) -> Symbol:
+        raise NotImplementedError(
+            "'get_member' not implemented for {}".format(type(self)))
 
     def __eq__(self, value):
         return value == self.ID
@@ -15,10 +28,12 @@ FloatType = WappaType("Float")
 StringType = WappaType("String")
 
 
-BooleanType = WappaType("Boolean")
+BoolType = WappaType("Boolean")
 
 
 NilType = WappaType("Nil")
+
+PrimitiveTypes = [IntType, FloatType, StringType, BoolType, NilType]
 
 
 class TypeType(WappaType):

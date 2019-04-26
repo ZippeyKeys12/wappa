@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, List, Optional, Any
+from typing import TYPE_CHECKING, Any, List, Optional
+
+from src.gen.Wappa import Token
 
 if TYPE_CHECKING:
     from src.structs.Block import Block
@@ -9,7 +11,8 @@ if TYPE_CHECKING:
 
 
 class Statement:
-    def __init__(self, text: str = ""):
+    def __init__(self, tok: Token, text: str = ""):
+        self.tok = tok
         self.text = text
 
     def compile(self, minify: bool = False) -> str:
@@ -17,10 +20,11 @@ class Statement:
 
 
 class IfStatement(Statement):
-    def __init__(self, if_expr: Expression, if_block: Block,
+    def __init__(self, tok: Token, if_expr: Expression, if_block: Block,
                  elsif_exprs: List[Expression] = None,
                  elsif_blocks: List[Block] = None,
                  else_block: Optional[Block] = None):
+        self.tok = tok
         self.if_expr = if_expr
         self.if_block = if_block
         self.elsif_exprs = elsif_exprs
@@ -51,16 +55,17 @@ class IfStatement(Statement):
             data = self.else_block.compile(minify)
 
             if minify:
-                ret += "else{}".format(*data)
+                ret += "else{}".format(data)
 
             else:
-                ret += "else {}".format(*data)
+                ret += "else {}".format(data)
 
         return ret
 
 
 class WhileStatement(Statement):
-    def __init__(self, expr, block):
+    def __init__(self, tok: Token, expr, block):
+        self.tok = tok
         self.expr = expr
         self.block = block
 
@@ -70,7 +75,8 @@ class WhileStatement(Statement):
 
 
 class UntilStatement(Statement):
-    def __init__(self, expr, block):
+    def __init__(self, tok: Token, expr, block):
+        self.tok = tok
         self.expr = expr
         self.block = block
 
@@ -80,7 +86,8 @@ class UntilStatement(Statement):
 
 
 class DoWhileStatement(Statement):
-    def __init__(self, block, expr):
+    def __init__(self, tok: Token, block, expr):
+        self.tok = tok
         self.block = block
         self.expr = expr
 
@@ -90,7 +97,8 @@ class DoWhileStatement(Statement):
 
 
 class DoUntilStatement(Statement):
-    def __init__(self, block, expr):
+    def __init__(self, tok: Token, block, expr):
+        self.tok = tok
         self.block = block
         self.expr = expr
 
@@ -100,7 +108,8 @@ class DoUntilStatement(Statement):
 
 
 class ReturnStatement(Statement):
-    def __init__(self, expr: Expression = None):
+    def __init__(self, tok: Token, expr: Expression = None):
+        self.tok = tok
         self.expr = expr
 
     def compile(self, minify: bool = False) -> str:
@@ -112,8 +121,10 @@ class ReturnStatement(Statement):
 
 
 class VariableDeclarationStatement(Statement):
-    def __init__(self, typed_var: str, var_type: Optional[WappaType], ID: str,
+    def __init__(self, tok: Token, typed_var: str,
+                 var_type: Optional[WappaType], ID: str,
                  initializer: Optional[Expression]):
+        self.tok = tok
         self.typed_var = typed_var
         self.var_type = var_type
         self.ID = ID
@@ -132,7 +143,9 @@ class VariableDeclarationStatement(Statement):
 
 
 class VariableDeclarationsStatement(Statement):
-    def __init__(self, var_statements: List[VariableDeclarationStatement]):
+    def __init__(self, tok: Token,
+                 var_statements: List[VariableDeclarationStatement]):
+        self.tok = tok
         self.var_statements = var_statements
 
     def compile(self, minify: bool = False) -> str:
@@ -140,7 +153,8 @@ class VariableDeclarationsStatement(Statement):
 
 
 class ExprStatement(Statement):
-    def __init__(self, expr: Expression):
+    def __init__(self, tok: Token, expr: Expression):
+        self.tok = tok
         self.expr = expr
 
     def compile(self, minify: bool = False) -> str:

@@ -12,24 +12,24 @@ from src.structs.Expression import (BinaryOPExpression, Expression,
 from src.structs.Field import Field
 from src.structs.Function import Function
 from src.structs.Scope import Scope
-from src.structs.Statement import (DoUntilStatement, DoWhileStatement,
-                                   ExprStatement, IfStatement, ReturnStatement,
-                                   Statement, UntilStatement,
-                                   VariableDeclarationsStatement,
-                                   VariableDeclarationStatement,
-                                   WhileStatement)
-from src.structs.Type import (BooleanType, FloatType, IntType, NilType,
-                              StringType, WappaType)
+from src.structs.Statement import (
+    DoUntilStatement, DoWhileStatement, ExprStatement, IfStatement,
+    ReturnStatement, Statement, UntilStatement, VariableDeclarationsStatement,
+    VariableDeclarationStatement, WhileStatement)
+from src.structs.Type import (BoolType, FloatType, IntType, NilType,
+                              PrimitiveTypes, StringType, WappaType)
 from src.structs.Variable import Variable
 
 
 class WappaVisitor(BaseVisitor):
     def __init__(self, minify: bool = False):
         self.minify = minify
-        self.global_scope = Scope()
+
+        self.ref_scope = Scope()
+        self.global_scope = Scope(parent=self.ref_scope)
         self.scope = [self.global_scope]
 
-        init_stdlib(self.global_scope)
+        init_stdlib(self.ref_scope)
 
         BaseVisitor.__init__(self)
 
@@ -136,7 +136,7 @@ class WappaVisitor(BaseVisitor):
 
         ref = self.scope[-1].get_symbol(ctx.start, ID)
 
-        return FunctionCallExpression(ref, args, kwargs)
+        return FunctionCallExpression(ctx.start, ref, args, kwargs)
 
     def visitFunctionKwarguments(self, ctx: Wappa.FunctionKwargumentsContext
                                  ) -> List[Tuple[str, Expression]]:
@@ -150,7 +150,7 @@ class WappaVisitor(BaseVisitor):
 
     def visitVariableDeclarations(
             self, ctx: Wappa.VariableDeclarationsContext):
-        return VariableDeclarationsStatement(list(map(
+        return VariableDeclarationsStatement(ctx.start, list(map(
             self.visitVariableDeclaration, ctx.variableDeclaration())))
 
     def visitVariableDeclaration(self, ctx: Wappa.VariableDeclarationContext):
@@ -171,7 +171,7 @@ class WappaVisitor(BaseVisitor):
                 var_type = initializer.type_of()
 
             return VariableDeclarationStatement(
-                'var', var_type, name, initializer)
+                ctx.start, 'var', var_type, name, initializer)
 
     def visitVariableDeclaratorId(
             self, ctx: Wappa.VariableDeclaratorIdContext) -> str:
@@ -193,7 +193,7 @@ class WappaVisitor(BaseVisitor):
 
     def visitStatement(self, ctx: Wappa.StatementContext) -> Statement:
         if ctx.getText() == ';':
-            return Statement()
+            return Statement(ctx.start)
 
         if ctx.statementType is not None:
             statement_type = ctx.statementType.text
@@ -215,6 +215,7 @@ class WappaVisitor(BaseVisitor):
                     else_block = self.visitBlock(blocks[-1])
 
                 return IfStatement(
+                    ctx.start,
                     self.visitExpression(exprs[0]),
                     self.visitBlock(blocks[0]),
                     elsif_exprs,
@@ -222,31 +223,35 @@ class WappaVisitor(BaseVisitor):
                     else_block)
 
             elif statement_type == "while":
-                return WhileStatement(self.visitExpression(ctx.expression(0)),
+                return WhileStatement(ctx.start,
+                                      self.visitExpression(ctx.expression(0)),
                                       self.visitBlock(ctx.block(0)))
 
             elif statement_type == "until":
-                return UntilStatement(self.visitExpression(ctx.expression(0)),
+                return UntilStatement(ctx.start,
+                                      self.visitExpression(ctx.expression(0)),
                                       self.visitBlock(ctx.block(0)))
 
             elif statement_type == "do":
                 block = self.visitBlock(ctx.block(0))
                 expr = self.visitExpression(ctx.expression(0))
                 if ctx.doType == "while":
-                    return DoWhileStatement(block, expr)
+                    return DoWhileStatement(ctx.start, block, expr)
                 else:
-                    return DoUntilStatement(block, expr)
+                    return DoUntilStatement(ctx.start, block, expr)
 
             elif statement_type == "return":
-                return ReturnStatement(self.visitExpression(ctx.expression(0)))
+                return ReturnStatement(
+                    ctx.start, self.visitExpression(ctx.expression(0)))
 
         if ctx.variableDeclarations():
             return self.visitVariableDeclarations(ctx.variableDeclarations())
 
         if ctx.expression(0):
-            return ExprStatement(self.visitExpression(ctx.expression(0)))
+            return ExprStatement(
+                ctx.start, self.visitExpression(ctx.expression(0)))
 
-        print("Fatal: Unhandled Exprssion {}".format(ctx.getText()))
+        print("Fatal: Unhandled Expression {}".format(ctx.getText()))
         return ctx
 
     def visitExpressionList(
@@ -260,22 +265,70 @@ class WappaVisitor(BaseVisitor):
         if ctx.functionCall():
             return self.visitFunctionCall(ctx.functionCall())
 
+        tok = ctx.start
+
         if ctx.postfix is not None:
-            return PostfixOPExpression(
-                self.visitExpression(ctx.expression(0)), ctx.postfix.text)
+            expr = self.visitExpression(ctx.expression(0))
+            expr_type = expr.type_of()
+
+            if expr_type is None:
+                Exception("ERROR", "Expression has no type", tok)
+
+            else:
+                postfix = ctx.postfix.text
+
+                if expr_type in PrimitiveTypes:
+                    return PostfixOPExpression(tok, expr, postfix)
+
+                ref = expr_type.get_member(tok, self.__magic_method({
+                    '++': 'postinc',
+                    '--': 'postdec'
+                }[postfix]))
+
+                if isinstance(ref, Function):
+                    return FunctionCallExpression(tok, ref, [expr], [])
 
         if ctx.prefix is not None:
-            return PrefixOPExpression(
-                ctx.prefix.text, self.visitExpression(ctx.expression(0)))
+            expr = self.visitExpression(ctx.expression(0))
+            expr_type = expr.type_of()
+
+            if expr_type is None:
+                Exception("ERROR", "Expression has no type", tok)
+
+            else:
+                prefix = ctx.prefix.text
+
+                if (prefix in ['alignof', 'sizeof', 'typeof']
+                        or expr_type in PrimitiveTypes):
+                    return PrefixOPExpression(ctx.start, prefix, expr)
+
+                ref = expr_type.get_member(tok, self.__magic_method({
+                    '!': 'not',
+                    '~': 'inv',
+                    '+': 'pos',
+                    '++': 'preinc',
+                    '-': 'neg',
+                    '--': 'predec'
+                }[prefix]))
+
+                if isinstance(ref, Function):
+                    return FunctionCallExpression(tok, ref, [expr], [])
 
         if ctx.bop is not None:
-            return BinaryOPExpression(
-                self.visitExpression(ctx.expression(0)),
-                ctx.bop.text,
-                self.visitExpression(ctx.expression(1)))
+            exprL = self.visitExpression(ctx.expression(0))
+            exprR = self.visitExpression(ctx.expression(1))
+
+            if expr_type is None:
+                Exception("ERROR", "Expression has no type", tok)
+
+            else:
+                bop = ctx.bop.text
+
+                return BinaryOPExpression(ctx.start, exprL, bop, exprR)
 
         if ctx.top is not None:
-            return TernaryOPExpression(self.visitExpression(ctx.expression(0)),
+            return TernaryOPExpression(ctx.start,
+                                       self.visitExpression(ctx.expression(0)),
                                        ctx.top.text,
                                        self.visitExpression(ctx.expression(1)),
                                        self.visitExpression(ctx.expression(2)))
@@ -290,7 +343,8 @@ class WappaVisitor(BaseVisitor):
 
         ID = ctx.IDENTIFIER()
         if ID:
-            return Reference(self.scope[-1].get_symbol(ctx.start, str(ID)))
+            return Reference(
+                ctx.start, self.scope[-1].get_symbol(ctx.start, str(ID)))
 
         if ctx.literal():
             return self.visitLiteral(ctx.literal())
@@ -301,19 +355,19 @@ class WappaVisitor(BaseVisitor):
         text = ctx.getText()
 
         if ctx.integerLiteral():
-            return Literal(text, IntType)
+            return Literal(ctx.start, text, IntType)
 
         if ctx.floatLiteral():
-            return Literal(text, FloatType)
+            return Literal(ctx.start, text, FloatType)
 
         if ctx.STRING_LITERAL():
-            return Literal(text, StringType)
+            return Literal(ctx.start, text, StringType)
 
         if ctx.BOOL_LITERAL():
-            return Literal(text, BooleanType)
+            return Literal(ctx.start, text, BoolType)
 
         if ctx.NIL_LITERAL():
-            return Literal(text, NilType)
+            return Literal(ctx.start, text, NilType)
 
         Exception("FATAL", "Unhandled Literal: {}".format(ctx.getText()),
                   ctx.start)
@@ -339,3 +393,6 @@ class WappaVisitor(BaseVisitor):
             return ret
 
         return self.visitChildren(ctx)
+
+    def __magic_method(self, ID: str):
+        return "__{}__".format(ID)
