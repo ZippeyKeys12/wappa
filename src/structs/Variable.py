@@ -2,9 +2,12 @@ from src.structs.Type import WappaType
 
 
 class Variable:
-    def __init__(self, var_type: WappaType, ID: str):
+    def __init__(self, ID: str, var_type: WappaType):
         self.var_type = var_type
         self.ID = ID
 
-    def compile(self, minify: bool = False) -> str:
-        return ""
+    def type_of(self) -> WappaType:
+        return self.var_type
+
+    # def compile(self, minify: bool = False) -> str:
+    #     return ""

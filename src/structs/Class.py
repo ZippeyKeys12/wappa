@@ -49,8 +49,3 @@ class Class(WappaType):
                 {}
             }}
         """.format(*data)
-
-    def __str__(self):
-        return "{} {}".format(",".join(filter(
-            lambda x: x is not None, self.modifiers
-        )), self.ID)

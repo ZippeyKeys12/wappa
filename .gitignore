@@ -146,8 +146,8 @@ dmypy.json
 .antlr/
 
 # Generated
-src/gen/*.py
-src/gen/*.tokens
+src/gen
+!src/gen/*.g4
 
 # Specific
 gzdoom_log.txt

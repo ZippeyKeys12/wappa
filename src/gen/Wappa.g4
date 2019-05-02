@@ -4,7 +4,9 @@ options {
     tokenVocab = WappaLexer;
 }
 
-compilationUnit: classDeclaration*;
+compilationUnit: translationUnit;
+
+translationUnit: classDeclaration*;
 
 ///////////
 // Class //
@@ -16,7 +18,7 @@ classDeclaration:
 classModifiers:
     visibilityModifier? inheritanceModifier? scopeModifier?;
 
-classParentDeclaration: ':' (typeName | innerConstructorCall);
+classParentDeclaration: ':' typeName;
 
 classInterfaceDeclaration: 'implements' interfaceSpecifierList;
 
@@ -96,9 +98,9 @@ block: '{' statement* '}';
 
 statement:
     blockLabel = block
-    | statementType = 'if' expression block (
-        'elsif' '(' expression ')' block
-    )* ('else' block)?
+    | statementType = 'if' ifExpr = expression ifBlock = block (
+        'elsif' '(' elsifExpr += expression ')' elsifBlock += block
+    )* ('else' elseBlock = block)?
     | statementType = 'for' '(' forControl ')' block
     | statementType = 'while' '(' expression ')' block
     | statementType = 'until' '(' expression ')' block
@@ -108,8 +110,8 @@ statement:
     // | classDeclaration
     // | functionDeclaration
     | variableDeclarations ';'
-    | ';'
-    | expression ';';
+    | expression ';'
+    | ';';
 
 forControl:
     variableDeclarations* ';' expression? ';' forUpdate = expressionList?;

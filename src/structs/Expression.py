@@ -4,8 +4,10 @@ from typing import TYPE_CHECKING, Any, List, Optional, Tuple
 
 from src.gen.Wappa import Token
 from src.structs.Field import Field
-from src.structs.Type import BoolType, IntType, StringType, TypeType, WappaType
+from src.structs.Type import (BoolType, DoubleType, IntType, StringType,
+                              TypeType, WappaType)
 from src.structs.Variable import Variable
+from src.util import Exception
 
 if TYPE_CHECKING:
     from src.structs.Function import Function
@@ -35,7 +37,7 @@ class Literal(Expression):
         self.text = text
         self.lit_type = lit_type
 
-    def type_of(self) -> Optional[WappaType]:
+    def type_of(self) -> WappaType:
         return self.lit_type
 
     def type_check(self):
@@ -54,11 +56,8 @@ class Reference(Expression):
         if isinstance(self, WappaType):
             return self.ref
 
-        if isinstance(self, Variable):
-            return self.ref.var_type
-
-        if isinstance(self, Field):
-            return self.ref.object_type
+        if isinstance(self.ref, (Field, Variable)):
+            return self.ref.type_of()
 
         return None
 
@@ -114,7 +113,8 @@ class PostfixOPExpression(Expression):
         if uop in ['++', '--']:
             return "({}{})".format(self.expr.compile(minify), uop)
 
-        print("Fatal: Unhandled Postfix Operator {}".format(uop))
+        Exception(
+            "FATAL", "Unhandled Postfix Operator {}".format(uop), self.tok)
         return uop
 
 
@@ -145,7 +145,9 @@ class PrefixOPExpression(Expression):
         if uop == 'typeof':
             return "({}.getClassName())".format(expr)
 
-        print("Fatal: Unhandled Prefix Operator {}".format(uop))
+        Exception(
+            "FATAL", "Unhandled Prefix Operator {}".format(uop), self.tok)
+
         return uop
 
 
@@ -166,6 +168,12 @@ class BinaryOPExpression(Expression):
                    '<<=', '>>=', '>>>=', '%=', '|>']:
             return self.exprR.type_of()
 
+        if bop == '/':
+            return DoubleType
+
+        if bop == '//':
+            return IntType
+
         return self.exprL.type_of()
 
     def compile(self, minify: bool = False) -> str:
@@ -175,8 +183,8 @@ class BinaryOPExpression(Expression):
         exprR = self.exprR.compile(minify)
 
         if bop in ['**', '*', '%', '-', '<<', '>>', '>>>', '<=', '>=', '<',
-                   '>', '&', '^', '|', '&&', '||', '=', '+=', '-=', '*=', '&=',
-                   '|=', '^=', '<<=', '>>=', '>>>=', '%=']:
+                   '>', '&', '^', '|', '==', '!=', '&&', '||', '=', '+=', '-=',
+                   '*=', '&=', '|=', '^=', '<<=', '>>=', '>>>=', '%=']:
             data = (exprL, bop, exprR)
 
             if minify:
@@ -185,10 +193,10 @@ class BinaryOPExpression(Expression):
             return "({} {} {})".format(*data)
 
         converter = {
-            '//': '/',
             '<=>': '<>=',
             '===': '==',
             '!==': '!=',
+            '~=': '~==',
             '//=': '/='
         }
         if bop in converter.keys():
@@ -207,6 +215,9 @@ class BinaryOPExpression(Expression):
 
         if bop == '/':
             return "({}/double({}))".format(exprL, exprR)
+
+        if bop == '//':
+            return "floor({}/{})".format(exprL, exprR)
 
         if bop == 'is':
             return "{} is '{}'".format(exprL, exprR)
@@ -230,7 +241,8 @@ class BinaryOPExpression(Expression):
 
             return "({0} = {0} / double({1}))".format(*data)
 
-        print("Fatal: Unhandled Binary Operator {}".format(bop))
+        Exception(
+            "FATAL", "Unhandled Binary Operator {}".format(bop), self.tok)
         return bop
 
 
@@ -254,6 +266,7 @@ class TernaryOPExpression(Expression):
 
     def compile(self, minify: bool = False) -> str:
         top = self.top
+
         data = (self.exprL.compile(minify),
                 self.exprC.compile(minify),
                 self.exprR.compile(minify))
@@ -277,5 +290,6 @@ class TernaryOPExpression(Expression):
             return "({0} > {1} && {1} > {2})".format(*data)
 
         else:
-            print("Error: Unhandled Ternary Operator {}".format(top))
+            Exception(
+                "FATAL", "Unhandled Ternary Operator {}".format(top), self.tok)
             return top
