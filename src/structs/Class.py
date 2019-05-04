@@ -38,8 +38,8 @@ class Class(WappaType):
             if isinstance(s, Field):
                 pass
 
-        data = ID, self.modifiers[2], " ".join([
-            f.compile(minify) for f in symbols])  # type: ignore # noqa
+        data = ID, self.modifiers[2], " ".join(
+            [f.compile(minify) for f in symbols])
 
         if minify:
             return "class {} {}{{{}}}".format(*data)

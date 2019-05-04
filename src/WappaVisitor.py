@@ -19,7 +19,7 @@ from src.structs.Statement import (
 from src.structs.Type import (BoolType, DoubleType, IntType, NilType,
                               PrimitiveTypes, StringType, WappaType)
 from src.structs.Variable import Variable
-from src.util import Exception
+from src.util import Exception, EXCEPTION_LIST
 
 
 class WappaVisitor(BaseVisitor):
@@ -40,14 +40,20 @@ class WappaVisitor(BaseVisitor):
 
         BaseVisitor.__init__(self)
 
-    def visit(self, tree):
+    def visit(self, tree) -> str:
         BaseVisitor.visit(self, tree)
 
-        return 'version "3.7.2"\n{}'.format("".join([
-            clazz.compile(self.minify) for clazz in self.global_scope.symbols(
-                values=True)]))
+        ret = 'version "3.7.2"\n{}'.format("".join([
+            obj.compile(self.minify) for obj in self.global_scope.symbols(
+                values=True) if hasattr(obj, 'compile')]))
 
-    def visitClassDeclaration(self, ctx: Wappa.ClassDeclarationContext):
+        for exception in sorted(set(EXCEPTION_LIST), key=lambda x: x[3]):
+            print("{}[{}] - {} at line {}{}".format(*exception))
+
+        return ret
+
+    def visitClassDeclaration(
+            self, ctx: Wappa.ClassDeclarationContext) -> None:
         ID = str(ctx.IDENTIFIER())
 
         parent = ctx.classParentDeclaration()
@@ -66,15 +72,17 @@ class WappaVisitor(BaseVisitor):
 
         self.scope.pop()
 
-    def visitClassModifiers(self, ctx: Wappa.ClassModifiersContext):
+    def visitClassModifiers(
+            self, ctx: Wappa.ClassModifiersContext) -> Tuple[str, str, str]:
         return (
             self.__safe_text(ctx.visibilityModifier()),
             self.__safe_text(ctx.inheritanceModifier()),
             self.__safe_text(ctx.scopeModifier())
         )
 
-    def visitClassParentDeclaration(self,
-                                    ctx: Wappa.ClassParentDeclarationContext):
+    def visitClassParentDeclaration(
+            self, ctx: Wappa.ClassParentDeclarationContext
+    ) -> Optional[WappaType]:
         return self.visitTypeName(ctx.typeName())
 
     def visitClassBlock(self, ctx: Wappa.ClassBlockContext):
@@ -334,6 +342,14 @@ class WappaVisitor(BaseVisitor):
             expr = self.visitExpression(ctx.expression(0))
             expr_type = expr.type_of()
 
+            if (hasattr(expr, "text") and expr.text == "ERROR"):
+                return Expression(tok, "ERROR")
+
+            if isinstance(expr, Reference) and not expr.ref:
+                Exception(
+                    'ERROR', "Unknown identifier '{}'".format(expr.ID), tok)
+                return Expression(tok, "ERROR")
+
             if expr_type is None:
                 Exception("ERROR", "Expression has no type", tok)
 
@@ -364,6 +380,14 @@ class WappaVisitor(BaseVisitor):
         if ctx.prefix is not None:
             expr = self.visitExpression(ctx.expression(0))
             expr_type = expr.type_of()
+
+            if (hasattr(expr, "text") and expr.text == "ERROR"):
+                return Expression(tok, "ERROR")
+
+            if isinstance(expr, Reference) and not expr.ref:
+                Exception(
+                    'ERROR', "Unknown identifier '{}'".format(expr.ID), tok)
+                return Expression(tok, "ERROR")
 
             if expr_type is None:
                 Exception("ERROR", "Expression has no type", tok)
@@ -403,6 +427,14 @@ class WappaVisitor(BaseVisitor):
             exprL = self.visitExpression(ctx.expression(0))
             exprR = self.visitExpression(ctx.expression(1))
             expr_type = exprL.type_of()
+
+            if (hasattr(exprL, "text") and exprL.text == "ERROR"):
+                return Expression(tok, "ERROR")
+
+            if isinstance(exprL, Reference) and not exprL.ref:
+                Exception(
+                    'ERROR', "Unknown identifier '{}'".format(exprL.ID), tok)
+                return Expression(tok, "ERROR")
 
             if expr_type is None:
                 Exception("ERROR", "Expression has no type", tok)
@@ -461,6 +493,14 @@ class WappaVisitor(BaseVisitor):
             exprR = self.visitExpression(ctx.expression(2))
             expr_type = exprC.type_of()
 
+            if (hasattr(exprC, "text") and exprC.text == "ERROR"):
+                return Expression(tok, "ERROR")
+
+            if isinstance(exprC, Reference) and not exprC.ref:
+                Exception(
+                    'ERROR', "Unknown identifier '{}'".format(exprC.ID), tok)
+                return Expression(tok, "ERROR")
+
             if expr_type is None:
                 Exception("ERROR", "Expression has no type", tok)
 
@@ -516,8 +556,9 @@ class WappaVisitor(BaseVisitor):
 
         ID = ctx.IDENTIFIER()
         if ID:
+            ID = str(ID)
             return Reference(
-                ctx.start, self.scope[-1].get_symbol(ctx.start, str(ID)))
+                ctx.start, self.scope[-1].get_symbol(ctx.start, ID), ID)
 
         if ctx.literal():
             return self.visitLiteral(ctx.literal())
@@ -555,7 +596,7 @@ class WappaVisitor(BaseVisitor):
 
         return None
 
-    def visitTypeName(self, ctx: Wappa.TypeNameContext):
+    def visitTypeName(self, ctx: Wappa.TypeNameContext) -> WappaType:
         return self.scope[-1].get_symbol(ctx.start, ctx.getText())
 
     def __safe_text(self, ctx, func: str = "getText", default="") -> str:

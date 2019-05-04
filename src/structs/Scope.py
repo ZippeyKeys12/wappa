@@ -36,6 +36,7 @@ class Scope:
             else:
                 Exception(
                     'ERROR', "Unknown identifier '{}'".format(ID), tok)
+                return False
 
     def symbols(self, keys: bool = False, values: bool = False
                 ) -> List[Union[str, Symbol, Tuple[str, Symbol]]]:

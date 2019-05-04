@@ -48,9 +48,10 @@ class Literal(Expression):
 
 
 class Reference(Expression):
-    def __init__(self, tok: Token, ref: Symbol):
+    def __init__(self, tok: Token, ref: Symbol, ID: str):
         self.tok = tok
         self.ref = ref
+        self.ID = ID
 
     def type_of(self) -> Optional[WappaType]:
         if isinstance(self, WappaType):

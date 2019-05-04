@@ -22,7 +22,7 @@ class Field:
             return self.object_type
 
         if self.value is not None:
-            return self.value.type_of()  # type: ignore
+            return self.value.type_of()
 
         return None
 
