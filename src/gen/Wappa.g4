@@ -42,7 +42,7 @@ innerConstructorCall: functionCall;
 
 classBlock: '{' memberDeclaration* '}' | ';';
 
-memberDeclaration: fieldDeclaration | functionDeclaration;
+memberDeclaration: fieldDeclaration | methodDeclaration;
 
 fieldDeclaration:
     visibilityModifier? staticTypedVar variableDeclaratorId (
@@ -58,9 +58,14 @@ functionModifiers:
     immutable = 'const'? override = 'override'? visibilityModifier? inheritanceModifier?;
 
 functionDeclaration:
-    functionModifiers 'fun' IDENTIFIER ('(' parameterList? ')') (
-        '->' typeOrVoid
-    )? block;
+    functionModifiers 'fun' IDENTIFIER '(' parameterList? ')' (
+        '->' typeOrUnit
+    )? (block | '=' expression ';');
+
+methodDeclaration:
+    functionModifiers 'fun' IDENTIFIER '(' ref = SELF (
+        ',' parameterList
+    )? ')' ('->' typeOrUnit)? (block | '=' expression ';');
 
 parameterList:
     IDENTIFIER ':' typeName (',' IDENTIFIER ':' typeName)*;
@@ -194,7 +199,7 @@ arguments: '(' expressionList? ')';
 literal:
     integerLiteral
     | floatLiteral
-    | STRING_LITERAL
+    | stringLiteral
     | BOOL_LITERAL
     | NIL_LITERAL;
 
@@ -206,9 +211,10 @@ integerLiteral:
 
 floatLiteral: FLOAT_LITERAL | HEX_FLOAT_LITERAL;
 
+stringLiteral:  STRING_LITERAL | INTERP_STRING_LITERAL;
 staticTypedVar: 'var' | 'val';
 
-typeOrVoid: typeName | 'void';
+typeOrUnit: typeName;
 
 typeName: IDENTIFIER typeArguments? typeConstraints?;
 

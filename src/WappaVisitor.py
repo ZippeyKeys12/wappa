@@ -17,9 +17,9 @@ from src.structs.Statement import (
     ReturnStatement, Statement, UntilStatement, VariableDeclarationsStatement,
     VariableDeclarationStatement, WhileStatement)
 from src.structs.Type import (BoolType, DoubleType, IntType, NilType,
-                              PrimitiveTypes, StringType, WappaType)
+                              PrimitiveTypes, StringType, UnitType, WappaType)
 from src.structs.Variable import Variable
-from src.util import Exception, EXCEPTION_LIST
+from src.util import EXCEPTION_LIST, Exception
 
 
 class WappaVisitor(BaseVisitor):
@@ -35,6 +35,7 @@ class WappaVisitor(BaseVisitor):
         self.ref_scope.add_symbol(None, "Double", DoubleType)
         self.ref_scope.add_symbol(None, "String", StringType)
         self.ref_scope.add_symbol(None, "Nil", NilType)
+        self.ref_scope.add_symbol(None, "Unit", UnitType)
 
         init_stdlib(self.ref_scope)
 
@@ -119,8 +120,8 @@ class WappaVisitor(BaseVisitor):
             parameters = self.visitParameterList(ctx.parameterList())
 
         ret_type = None
-        if ctx.typeOrVoid():
-            ret_type = self.visitTypeOrVoid(ctx.typeOrVoid())
+        if ctx.typeOrUnit():
+            ret_type = self.visitTypeOrUnit(ctx.typeOrUnit())
 
         scope = Scope(parent=self.scope[-1])
         self.scope.append(scope)
@@ -128,11 +129,70 @@ class WappaVisitor(BaseVisitor):
         for p in parameters:
             scope.add_symbol(ctx.start, p[0], p[1])
 
-        block = self.visitBlock(ctx.block())
+        if ctx.expression():
+            expr = ctx.expression()
+
+            if ret_type and ret_type != UnitType:
+                stmt = ReturnStatement(
+                    expr.start, self.visitExpression(expr))
+            else:
+                stmt = ExprStatement(
+                    expr.start, self.visitExpression(expr))
+
+            block = Block(
+                self.scope[-1], [stmt])
+        else:
+            block = self.visitBlock(ctx.block())
 
         self.scope.pop()
 
         self.scope[-1].add_symbol(ctx.start, ID, Function(
+            ID, modifiers, parameters, ret_type, block))
+
+    def visitMethodDeclaration(self, ctx: Wappa.MethodDeclarationContext):
+        modifiers = self.visitFunctionModifiers(ctx.functionModifiers())
+
+        parameters: List[Tuple[str, WappaType]] = []
+        if ctx.parameterList():
+            parameters = self.visitParameterList(ctx.parameterList())
+
+        ret_type = None
+        if ctx.typeOrUnit():
+            ret_type = self.visitTypeOrUnit(ctx.typeOrUnit())
+
+        scope = Scope(parent=self.scope[-1])
+        self.scope.append(scope)
+
+        tok = ctx.start
+
+        ref = ctx.ref
+        if ref.text == 'self':
+            scope.add_symbol(ref.start, 'self', Variable(
+                'self', scope.parent.owner))
+
+        for p in parameters:
+            ID = p[0]
+            scope.add_symbol(tok, ID, Variable(ID, p[1]))
+
+        if ctx.expression():
+            expr = ctx.expression()
+
+            if ret_type and ret_type != UnitType:
+                stmt = ReturnStatement(
+                    expr.start, self.visitExpression(expr))
+            else:
+                stmt = ExprStatement(
+                    expr.start, self.visitExpression(expr))
+
+            block = Block(
+                self.scope[-1], [stmt])
+        else:
+            block = self.visitBlock(ctx.block())
+
+        self.scope.pop()
+
+        ID = str(ctx.IDENTIFIER())
+        self.scope[-1].add_symbol(tok, ID, Function(
             ID, modifiers, parameters, ret_type, block))
 
     def visitParameterList(self, ctx: Wappa.ParameterListContext
@@ -574,7 +634,7 @@ class WappaVisitor(BaseVisitor):
         if ctx.floatLiteral():
             return Literal(ctx.start, text, DoubleType)
 
-        if ctx.STRING_LITERAL():
+        if ctx.stringLiteral():
             return Literal(ctx.start, text, StringType)
 
         if ctx.BOOL_LITERAL():
@@ -588,9 +648,10 @@ class WappaVisitor(BaseVisitor):
 
         return Literal(ctx.start, text, NilType)
 
-    def visitTypeOrVoid(
-            self, ctx: Wappa.TypeOrVoidContext) -> Optional[WappaType]:
+    def visitTypeOrUnit(
+            self, ctx: Wappa.TypeOrUnitContext) -> Optional[WappaType]:
         type_name = ctx.typeName()
+
         if type_name:
             return self.visitTypeName(type_name)
 

@@ -46,6 +46,7 @@ PLAY:      'play';
 PRIVATE:   'private';
 PROTECTED: 'protected';
 PROTOTYPE: 'prototype';
+// PROTOCOL:  'protocol';
 PUBLIC:    'public';
 RETURN:    'return';
 SELF:      'self';
@@ -66,7 +67,6 @@ UI:     'ui';
 UNTIL:  'until';
 VAL:    'val';
 VAR:    'var';
-VOID:   'void';
 // VOLATILE:     'volatile';
 WHILE: 'while';
 WITH:  'with';
@@ -96,7 +96,8 @@ HEX_FLOAT_LITERAL:
 
 BOOL_LITERAL: 'true' | 'false';
 
-STRING_LITERAL: '"' StringInner '"' | '\'' StringInner '\'';
+STRING_LITERAL:        '\'' StringInner '\'';
+INTERP_STRING_LITERAL: '"' StringInner '"';
 
 NIL_LITERAL: 'nil';
 

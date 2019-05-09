@@ -37,6 +37,8 @@ BoolType = WappaType("Boolean")
 
 NilType = WappaType("Nil")
 
+UnitType = WappaType("Void")
+
 PrimitiveTypes = [IntType, DoubleType, StringType, BoolType, NilType]
 
 

@@ -22,7 +22,12 @@ class Class(WappaType):
         self.modifiers = modifiers
 
     def get_member(self, tok: Token, ID: str) -> Symbol:
-        return self.scope.get_symbol(tok, ID)
+        ret = self.scope.get_symbol(tok, ID, not self.parent)
+
+        if not ret and self.parent:
+            return self.parent.get_member(tok, ID)
+
+        return ret
 
     def compile(self, minify: bool = False) -> str:
         ID = self.ID

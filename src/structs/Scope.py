@@ -27,16 +27,18 @@ class Scope:
 
         self.symbol_table[ID.lower()] = symbol
 
-    def get_symbol(self, tok: Token, ID: str):
+    def get_symbol(self, tok: Token, ID: str, exception: bool = True
+                   ) -> Optional[Symbol]:
         try:
             return self.symbol_table[ID.lower()]
         except KeyError:
             if self.parent is not None:
                 return self.parent.get_symbol(tok, ID)
             else:
-                Exception(
-                    'ERROR', "Unknown identifier '{}'".format(ID), tok)
-                return False
+                if exception:
+                    Exception(
+                        'ERROR', "Unknown identifier '{}'".format(ID), tok)
+                return None
 
     def symbols(self, keys: bool = False, values: bool = False
                 ) -> List[Union[str, Symbol, Tuple[str, Symbol]]]:
