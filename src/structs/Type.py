@@ -2,14 +2,18 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, List
 
+import llvmlite.ir as ir
+
 if TYPE_CHECKING:
     from src.gen.Wappa import Token
     from src.structs.Scope import Symbol
 
 
 class WappaType:
-    def __init__(self, ID: str, supertypes: List[WappaType] = []):
+    def __init__(self, ID: str, ir_type: ir.Value = None,
+                 supertypes: List[WappaType] = []):
         self.ID = ID
+        self.ir_type = ir_type
         self.supertypes = supertypes
 
     def is_a(self, other: WappaType):
@@ -23,16 +27,16 @@ class WappaType:
         return value == self.ID
 
 
-DoubleType = WappaType("Double")
+DoubleType = WappaType("Double", ir.DoubleType())
 
 
-IntType = WappaType("Int", supertypes=[DoubleType])
+IntType = WappaType("Int", ir.IntType(32), supertypes=[DoubleType])
 
 
 StringType = WappaType("String")
 
 
-BoolType = WappaType("Boolean")
+BoolType = WappaType("Boolean", ir.IntType(1))
 
 
 NilType = WappaType("Nil")

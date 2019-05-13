@@ -2,11 +2,14 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, List, Optional
 
+import llvmlite.ir as ir
+
 from src.gen.Wappa import Token
 
 if TYPE_CHECKING:
     from src.structs.Block import Block
     from src.structs.Expression import Expression
+    from src.structs.Symbols import SymbolTable
     from src.structs.Type import WappaType
 
 
@@ -15,7 +18,8 @@ class Statement:
         self.tok = tok
         self.text = text
 
-    def compile(self, minify: bool = False) -> str:
+    def compile(self, module: ir.Module, builder: ir.IRBuilder,
+                symbols: SymbolTable) -> ir.Value:
         return self.text
 
 
@@ -31,36 +35,95 @@ class IfStatement(Statement):
         self.elsif_blocks = elsif_blocks
         self.else_block = else_block
 
-    def compile(self, minify: bool = False) -> str:
-        data: Any = (self.if_expr.compile(minify),
-                     self.if_block.compile(minify))
+    def compile(self, module: ir.Module, builder: ir.IRBuilder,
+                symbols: SymbolTable) -> ir.Value:
+        if not self.elsif_exprs:
+            if self.else_block:
+                with builder.if_else(self.if_expr.compile(
+                        module, builder, symbols)) as (then, otherwise):
+                    with then:
+                        self.if_block.compile(module, builder, symbols)
 
-        if minify:
-            ret = "if({}){}".format(*data)
-        else:
-            ret = "if ({}) {}".format(*data)
+                    with otherwise:
+                        self.else_block.compile(module, builder, symbols)
 
-        exprs = self.elsif_exprs
-        blocks = self.elsif_blocks
-        if exprs is not None and blocks is not None:
-            for expr, block in zip(exprs, blocks):
-                data = (expr.compile(minify), block.compile(minify))
-
-                if minify:
-                    ret += "else if({}){}".format(*data)
-                else:
-                    ret += "else if ({}) {}".format(*data)
-
-        if self.else_block is not None:
-            data = self.else_block.compile(minify)
-
-            if minify:
-                ret += "else{}".format(data)
-
+                return
             else:
-                ret += "else {}".format(data)
+                with builder.if_then(
+                        self.if_expr.compile(module, builder, symbols)):
+                    self.if_block.compile(module, builder, symbols)
 
-        return ret
+                return
+
+        def build_elsif(elsifs):
+            expr, block = elsifs
+            with builder.if_else(expr.compile(
+                    module, builder, symbols)) as (then, otherwise):
+                with then:
+                    block.compile(module, builder, symbols)
+
+                with otherwise:
+                    left = len(elsifs)
+                    if left > 2:
+                        build_elsif(elsifs[1:])
+
+                    if left == 2:
+                        expr, block = elsifs[1]
+
+                        if self.else_block:
+                            with builder.if_else(expr.compile(
+                                    module, builder, symbols)) as (then,
+                                                                   otherwise):
+                                with then:
+                                    block.compile(module, builder, symbols)
+
+                                with otherwise:
+                                    self.else_block.compile(
+                                        module, builder, symbols)
+
+                        else:
+                            with builder.if_then(expr.compile(
+                                    module, builder, symbols)):
+                                block.compile(module, builder, symbols)
+
+        with builder.if_else(self.if_expr.compile(
+                module, builder, symbols)) as (then, otherwise):
+            with then:
+                self.if_block.compile(module, builder, symbols)
+
+            with otherwise:
+                build_elsif([(self.elsif_exprs[i], self.elsif_blocks[i])
+                             for i in range(len(self.elsif_exprs))])
+
+        # data: Any = (self.if_expr.compile(minify),
+        #              self.if_block.compile(minify))
+
+        # if minify:
+        #     ret = "if({}){}".format(*data)
+        # else:
+        #     ret = "if ({}) {}".format(*data)
+
+        # exprs = self.elsif_exprs
+        # blocks = self.elsif_blocks
+        # if exprs is not None and blocks is not None:
+        #     for expr, block in zip(exprs, blocks):
+        #         data = (expr.compile(minify), block.compile(minify))
+
+        #         if minify:
+        #             ret += "else if({}){}".format(*data)
+        #         else:
+        #             ret += "else if ({}) {}".format(*data)
+
+        # if self.else_block is not None:
+        #     data = self.else_block.compile(minify)
+
+        #     if minify:
+        #         ret += "else{}".format(data)
+
+        #     else:
+        #         ret += "else {}".format(data)
+
+        # return ret
 
 
 class WhileStatement(Statement):
@@ -69,7 +132,8 @@ class WhileStatement(Statement):
         self.expr = expr
         self.block = block
 
-    def compile(self, minify: bool = False) -> str:
+    def compile(self, module: ir.Module, builder: ir.IRBuilder,
+                symbols: SymbolTable) -> ir.Value:
         return "while ({}) {}".format(
             self.expr.compile(minify), self.block.compile(minify))
 
@@ -80,7 +144,8 @@ class UntilStatement(Statement):
         self.expr = expr
         self.block = block
 
-    def compile(self, minify: bool = False) -> str:
+    def compile(self, module: ir.Module, builder: ir.IRBuilder,
+                symbols: SymbolTable) -> ir.Value:
         return "until ({}) {}".format(
             self.expr.compile(minify), self.block.compile(minify))
 
@@ -91,7 +156,8 @@ class DoWhileStatement(Statement):
         self.block = block
         self.expr = expr
 
-    def compile(self, minify: bool = False) -> str:
+    def compile(self, module: ir.Module, builder: ir.IRBuilder,
+                symbols: SymbolTable) -> ir.Value:
         return "do {} while ({});".format(
             self.block.compile(minify), self.expr.compile(minify))
 
@@ -102,7 +168,8 @@ class DoUntilStatement(Statement):
         self.block = block
         self.expr = expr
 
-    def compile(self, minify: bool = False) -> str:
+    def compile(self, module: ir.Module, builder: ir.IRBuilder,
+                symbols: SymbolTable) -> ir.Value:
         return "do {} until ({});".format(
             self.block.compile(minify), self.expr.compile(minify))
 
@@ -112,12 +179,13 @@ class ReturnStatement(Statement):
         self.tok = tok
         self.expr = expr
 
-    def compile(self, minify: bool = False) -> str:
+    def compile(self, module: ir.Module, builder: ir.IRBuilder,
+                symbols: SymbolTable) -> ir.Value:
         expr = self.expr
         if expr is None:
-            return "return;"
+            builder.ret_void()
         else:
-            return "return {};".format(expr.compile(minify))
+            builder.ret(self.expr.compile(module, builder, symbols))
 
 
 class VariableDeclarationStatement(Statement):
@@ -130,7 +198,8 @@ class VariableDeclarationStatement(Statement):
         self.ID = ID
         self.initializer = initializer
 
-    def compile(self, minify: bool = False) -> str:
+    def compile(self, module: ir.Module, builder: ir.IRBuilder,
+                symbols: SymbolTable) -> ir.Value:
         var_type = 'let'
         if self.var_type:
             var_type = self.var_type.ID
@@ -148,7 +217,8 @@ class VariableDeclarationsStatement(Statement):
         self.tok = tok
         self.var_statements = var_statements
 
-    def compile(self, minify: bool = False) -> str:
+    def compile(self, module: ir.Module, builder: ir.IRBuilder,
+                symbols: SymbolTable) -> ir.Value:
         return "".join([x.compile(minify) for x in self.var_statements])
 
 
@@ -157,5 +227,6 @@ class ExprStatement(Statement):
         self.tok = tok
         self.expr = expr
 
-    def compile(self, minify: bool = False) -> str:
-        return "{};".format(self.expr.compile(minify))
+    def compile(self, module: ir.Module, builder: ir.IRBuilder,
+                symbols: SymbolTable) -> ir.Value:
+        self.expr.compile(module, builder, symbols)

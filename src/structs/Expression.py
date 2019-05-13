@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, List, Optional, Tuple
 
+import llvmlite.ir as ir
+
 from src.gen.Wappa import Token
 from src.structs.Field import Field
 from src.structs.Type import (BoolType, DoubleType, IntType, StringType,
@@ -12,6 +14,7 @@ from src.util import Exception
 if TYPE_CHECKING:
     from src.structs.Function import Function
     from src.structs.Scope import Symbol
+    from src.structs.Symbols import SymbolTable
 
 
 class Expression:
@@ -27,8 +30,10 @@ class Expression:
         raise NotImplementedError(
             "'type_check' not implemented for {}".format(type(self)))
 
-    def compile(self, minify: bool = False) -> str:
-        return self.text
+    def compile(self, module: ir.Module, builder: ir.IRBuilder,
+                symbols: SymbolTable) -> ir.Value:
+        raise NotImplementedError(
+            "'compile' not implemented for {}: {}".format(type(self), self.text))
 
 
 class Literal(Expression):
@@ -43,8 +48,18 @@ class Literal(Expression):
     def type_check(self):
         pass
 
-    def compile(self, minify: bool = False) -> str:
-        return self.text
+    def compile(self, module: ir.Module, builder: ir.IRBuilder,
+                symbols: SymbolTable) -> ir.Value:
+        lit_type = self.lit_type
+
+        if lit_type == IntType:
+            return ir.Constant(lit_type.ir_type, int(self.text))
+
+        if lit_type == DoubleType:
+            return ir.Constant(lit_type.ir_type, float(self.text))
+
+        if lit_type == BoolType:
+            return ir.Constant(lit_type.ir_type, int(self.text == 'True'))
 
 
 class Reference(Expression):
@@ -65,8 +80,9 @@ class Reference(Expression):
     def type_check(self):
         pass
 
-    def compile(self, minify: bool = False) -> str:
-        return self.ref.ID
+    def compile(self, module: ir.Module, builder: ir.IRBuilder,
+                symbols: SymbolTable) -> ir.Value:
+        return symbols.get_symbol(self.ID)
 
 
 class FunctionCallExpression(Expression):
@@ -83,20 +99,11 @@ class FunctionCallExpression(Expression):
     def type_check(self):
         pass
 
-    def compile(self, minify: bool = False) -> str:
-        args = ""
-        if self.args:
-            args = ",".join([x.compile(minify) for x in self.args])
-
-        kwargs = ""
-        if self.kwargs:
-            kwargs = ",".join(["{}:{}".format(x[0], x[1].compile(minify))
-                               for x in self.kwargs])
-
-            if self.args:
-                kwargs = "," + kwargs
-
-        return "{}({}{})".format(self.ref.ID, args, kwargs)
+    def compile(self, module: ir.Module, builder: ir.IRBuilder,
+                symbols: SymbolTable) -> ir.Value:
+        return builder.call(
+            self.ref.compile(module, builder, symbols),
+            [a.compile(module, builder, symbols) for a in self.args])
 
 
 class PostfixOPExpression(Expression):
@@ -108,11 +115,17 @@ class PostfixOPExpression(Expression):
     def type_of(self) -> Optional[WappaType]:
         return self.expr.type_of()
 
-    def compile(self, minify: bool = False) -> str:
+    def compile(self, module: ir.Module, builder: ir.IRBuilder,
+                symbols: SymbolTable) -> ir.Value:
         uop = self.postfix
 
+        # TODO: Figure out postfix operators
         if uop in ['++', '--']:
-            return "({}{})".format(self.expr.compile(minify), uop)
+            if self.expr.type_of() == IntType:
+                pass
+
+            if self.expr.type_of() == DoubleType:
+                pass
 
         Exception(
             "FATAL", "Unhandled Postfix Operator {}".format(uop), self.tok)
@@ -136,15 +149,22 @@ class PrefixOPExpression(Expression):
 
         return self.expr.type_of()
 
-    def compile(self, minify: bool = False) -> str:
+    def compile(self, module: ir.Module, builder: ir.IRBuilder,
+                symbols: SymbolTable) -> ir.Value:
         uop = self.prefix
-        expr = self.expr.compile(minify)
+        expr = self.expr.compile(module, builder, symbols)
 
-        if uop in ['+', '++', '-', '--', '~', '!', 'alignof', 'sizeof']:
-            return "({}{})".format(uop, expr)
+        if uop == '-':
+            return builder.neg(expr)
 
-        if uop == 'typeof':
-            return "({}.getClassName())".format(expr)
+        if uop in ['~', '!']:
+            return builder.not_(expr)
+
+        # if uop in ['+', '++', '-', '--', '~', '!', 'alignof', 'sizeof']:
+        #     return "({}{})".format(uop, expr)
+
+        # if uop == 'typeof':
+        #     return "({}.getClassName())".format(expr)
 
         Exception(
             "FATAL", "Unhandled Prefix Operator {}".format(uop), self.tok)
@@ -177,70 +197,197 @@ class BinaryOPExpression(Expression):
 
         return self.exprL.type_of()
 
-    def compile(self, minify: bool = False) -> str:
-        data: Any
+    def compile(self, module: ir.Module, builder: ir.IRBuilder,
+                symbols: SymbolTable) -> ir.Value:
         bop = self.bop
-        exprL = self.exprL.compile(minify)
-        exprR = self.exprR.compile(minify)
 
-        if bop in ['**', '*', '%', '-', '<<', '>>', '>>>', '<=', '>=', '<',
-                   '>', '&', '^', '|', '==', '!=', '&&', '||', '=', '+=', '-=',
-                   '*=', '&=', '|=', '^=', '<<=', '>>=', '>>>=', '%=']:
-            data = (exprL, bop, exprR)
+        exprL = self.exprL.compile(module, builder, symbols)
+        exprL_type = self.exprL.type_of()
 
-            if minify:
-                return "({}{}{})".format(*data)
-
-            return "({} {} {})".format(*data)
-
-        converter = {
-            '<=>': '<>=',
-            '===': '==',
-            '!==': '!=',
-            '~=': '~==',
-            '//=': '/='
-        }
-        if bop in converter.keys():
-            data = (exprL, converter[bop], exprR)
-
-            if minify:
-                return "({}{}{})".format(*data)
-
-            return "({} {} {})".format(*data)
+        exprR = self.exprR.compile(module, builder, symbols)
+        exprR_type = self.exprR.type_of()
 
         if bop == '+':
-            if self.exprL.type_of() == StringType:
-                return "{}..{}".format(exprL, exprR)
+            if exprL_type == IntType and exprR_type == IntType:
+                return builder.add(exprL, exprR)
 
-            return "{}+{}".format(exprL, exprR)
+            if exprL_type == IntType:
+                return builder.fadd(
+                    builder.sitofp(exprL, DoubleType.ir_type), exprR)
+
+            if exprR_type == IntType:
+                return builder.fadd(
+                    exprL, builder.sitofp(exprR, DoubleType.ir_type))
+
+            return builder.fadd(exprL, exprR)
+
+        if bop == '-':
+            if exprL_type == IntType and exprR_type == IntType:
+                return builder.sub(exprL, exprR)
+
+            if exprL_type == IntType:
+                return builder.fsub(
+                    builder.sitofp(exprL, DoubleType.ir_type), exprR)
+
+            if exprR_type == IntType:
+                return builder.fsub(
+                    exprL, builder.sitofp(exprR, DoubleType.ir_type))
+
+            return builder.fsub(exprL, exprR)
+
+        if bop == '*':
+            if exprL_type == IntType and exprR_type == IntType:
+                return builder.mul(exprL, exprR)
+
+            if exprL_type == IntType:
+                return builder.fmul(
+                    builder.sitofp(exprL, DoubleType.ir_type), exprR)
+
+            if exprR_type == IntType:
+                return builder.fmul(
+                    exprL, builder.sitofp(exprR, DoubleType.ir_type))
+
+            return builder.fmul(exprL, exprR)
 
         if bop == '/':
-            return "({}/double({}))".format(exprL, exprR)
+            if exprL_type == IntType:
+                return builder.fdiv(
+                    builder.sitofp(exprL, DoubleType.ir_type), exprR)
+
+            if exprR_type == IntType:
+                return builder.fdiv(
+                    exprL, builder.sitofp(exprR, DoubleType.ir_type))
+
+            return builder.fdiv(exprL, exprR)
 
         if bop == '//':
-            return "floor({}/{})".format(exprL, exprR)
+            return builder.sdiv(exprL, exprR)
 
-        if bop == 'is':
-            return "{} is '{}'".format(exprL, exprR)
+        if bop == '%':
+            if exprL_type == IntType and exprR_type == IntType:
+                return builder.srem(exprL, exprR)
 
-        if bop == '|>':
-            return "({}({}))".format(exprR, exprL)
+            if exprL_type == IntType:
+                return builder.frem(
+                    builder.sitofp(exprL, DoubleType.ir_type), exprR)
 
-        if bop == '**=':
-            data = (exprL, exprR)
+            if exprR_type == IntType:
+                return builder.frem(
+                    exprL, builder.sitofp(exprR, DoubleType.ir_type))
 
-            if minify:
-                return "({0}={0}**{1})".format(*data)
+            return builder.frem(exprL, exprR)
 
-            return "({0} = {0} ** {1})".format(*data)
+        if bop in ['&', '&&']:
+            return builder.and_(exprL, exprR)
 
-        if bop == '/=':
-            data = (exprL, exprR)
+        if bop in ['|', '||']:
+            return builder.or_(exprL, exprR)
 
-            if minify:
-                return "({0}={0}/double({1}))".format(*data)
+        if bop == '^':
+            return builder.xor(exprL, exprR)
 
-            return "({0} = {0} / double({1}))".format(*data)
+        if bop in ['<', '<=', '>=', '>']:
+            if exprL_type == IntType and exprR_type == IntType:
+                return builder.icmp_signed(bop, exprL, exprR)
+
+            if exprL_type == IntType:
+                return builder.fcmp_ordered(
+                    bop, builder.sitofp(exprL, DoubleType.ir_type), exprR)
+
+            if exprR_type == IntType:
+                return builder.fcmp_ordered(
+                    bop, exprL, builder.sitofp(exprR, DoubleType.ir_type))
+
+            return builder.fcmp_ordered(bop, exprL, exprR)
+
+        if bop == '==':
+            if exprL_type == IntType and exprR_type == IntType:
+                return builder.icmp_signed(bop, exprL, exprR)
+
+            if exprL_type == IntType:
+                return builder.fcmp_ordered(
+                    bop, builder.sitofp(exprL, DoubleType.ir_type), exprR)
+
+            if exprR_type == IntType:
+                return builder.fcmp_ordered(
+                    bop, exprL, builder.sitofp(exprR, DoubleType.ir_type))
+
+            return builder.fcmp_ordered(bop, exprL, exprR)
+
+        if bop == '!=':
+            if exprL_type == IntType and exprR_type == IntType:
+                return builder.icmp_signed(bop, exprL, exprR)
+
+            if exprL_type == IntType:
+                return builder.fcmp_unordered(
+                    bop, builder.sitofp(exprL, DoubleType.ir_type), exprR)
+
+            if exprR_type == IntType:
+                return builder.fcmp_unordered(
+                    bop, exprL, builder.sitofp(exprR, DoubleType.ir_type))
+
+            return builder.fcmp_unordered(bop, exprL, exprR)
+
+        # if bop == '**':
+
+        # if bop in ['**', '*', '%', '-', '<<', '>>', '>>>', '<=', '>=', '<',
+        #            '>', '&', '^', '|', '==', '!=', '&&', '||', '=', '+=',
+        #            '-=', '*=', '&=', '|=', '^=', '<<=', '>>=', '>>>=', '%=']:
+        #     data = (exprL, bop, exprR)
+
+        #     if minify:
+        #         return "({}{}{})".format(*data)
+
+        #     return "({} {} {})".format(*data)
+
+        # converter = {
+        #     '<=>': '<>=',
+        #     '===': '==',
+        #     '!==': '!=',
+        #     '~=': '~==',
+        #     '//=': '/='
+        # }
+        # if bop in converter.keys():
+        #     data = (exprL, converter[bop], exprR)
+
+        #     if minify:
+        #         return "({}{}{})".format(*data)
+
+        #     return "({} {} {})".format(*data)
+
+        # if bop == '+':
+        #     if self.exprL.type_of() == StringType:
+        #         return "{}..{}".format(exprL, exprR)
+
+        #     return "{}+{}".format(exprL, exprR)
+
+        # if bop == '/':
+        #     return "({}/double({}))".format(exprL, exprR)
+
+        # if bop == '//':
+        #     return "floor({}/{})".format(exprL, exprR)
+
+        # if bop == 'is':
+        #     return "{} is '{}'".format(exprL, exprR)
+
+        # if bop == '|>':
+        #     return "({}({}))".format(exprR, exprL)
+
+        # if bop == '**=':
+        #     data = (exprL, exprR)
+
+        #     if minify:
+        #         return "({0}={0}**{1})".format(*data)
+
+        #     return "({0} = {0} ** {1})".format(*data)
+
+        # if bop == '/=':
+        #     data = (exprL, exprR)
+
+        #     if minify:
+        #         return "({0}={0}/double({1}))".format(*data)
+
+        #     return "({0} = {0} / double({1}))".format(*data)
 
         Exception(
             "FATAL", "Unhandled Binary Operator {}".format(bop), self.tok)
@@ -248,49 +395,21 @@ class BinaryOPExpression(Expression):
 
 
 class TernaryOPExpression(Expression):
-    def __init__(self, tok: Token, exprL: Expression, top: str,
-                 exprC: Expression, exprR: Expression):
+    def __init__(self, tok: Token, exprL: Expression, exprC: Expression,
+                 exprR: Expression):
         self.tok = tok
+
         self.exprL = exprL
-        self.top = top
         self.exprC = exprC
         self.exprR = exprR
 
     def type_of(self):
-        top = self.top
+        return self.exprC.type_of()
 
-        if top == '?':
-            return self.exprC.type_of()
+    def compile(self, module: ir.Module, builder: ir.IRBuilder,
+                symbols: SymbolTable) -> ir.Value:
+        data = (self.exprL.compile(module, builder, symbols),
+                self.exprC.compile(module, builder, symbols),
+                self.exprR.compile(module, builder, symbols))
 
-        if top in ['<', '>']:
-            return BoolType
-
-    def compile(self, minify: bool = False) -> str:
-        top = self.top
-
-        data = (self.exprL.compile(minify),
-                self.exprC.compile(minify),
-                self.exprR.compile(minify))
-
-        if top == "?":
-            if minify:
-                return "({}?{}:{})".format(*data)
-
-            return "({} ? {} : {})".format(*data)
-
-        elif top == "<":
-            if minify:
-                return "({0}<{1}&&{1}<{2})".format(*data)
-
-            return "({0} < {1} && {1} < {2})".format(*data)
-
-        elif top == ">":
-            if minify:
-                return "({0}>{1}&&{1}>{2})".format(*data)
-
-            return "({0} > {1} && {1} > {2})".format(*data)
-
-        else:
-            Exception(
-                "FATAL", "Unhandled Ternary Operator {}".format(top), self.tok)
-            return top
+        return builder.select(*data)

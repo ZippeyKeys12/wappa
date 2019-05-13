@@ -94,12 +94,12 @@ FLOAT_LITERAL: (Digits '.' Digits? | '.' Digits) ExponentPart? [fFdD]?
 HEX_FLOAT_LITERAL:
     '0' [xX] (HexDigits '.'? | HexDigits? '.' HexDigits) [pP] [+-]? Digits [fFdD]?;
 
-BOOL_LITERAL: 'true' | 'false';
+BOOL_LITERAL: 'True' | 'False';
 
 STRING_LITERAL:        '\'' StringInner '\'';
 INTERP_STRING_LITERAL: '"' StringInner '"';
 
-NIL_LITERAL: 'nil';
+NIL_LITERAL: 'Nil';
 
 IDENTIFIER: Letter LetterOrDigit*;
 

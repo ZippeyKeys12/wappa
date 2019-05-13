@@ -2,9 +2,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Optional, Tuple
 
+import llvmlite.ir as ir
+
 if TYPE_CHECKING:
     from src.structs.Expression import Expression
+    from src.structs.Symbols import SymbolTable
     from src.structs.Type import WappaType
+
 
 
 class Field:
@@ -26,7 +30,8 @@ class Field:
 
         return None
 
-    def compile(self, minify: bool = False) -> str:
+    def compile(self, module: ir.Module, builder: ir.IRBuilder,
+                symbols: SymbolTable) -> ir.Value:
         if self.object_type is None:
             self.object_type = self.value.type_of().ID
         return "{} {};".format(self.object_type, self.ID)

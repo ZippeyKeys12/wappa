@@ -6,6 +6,7 @@ name = "pypi"
 [packages]
 "antlr4-python3-runtime" = "*"
 sty = "*"
+llvmlite = "*"
 
 [dev-packages]
 autopep8 = "*"

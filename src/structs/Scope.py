@@ -21,16 +21,16 @@ class Scope:
         self.symbol_table: Dict[str, Symbol] = {}
 
     def add_symbol(self, tok: Token, ID: str, symbol: Symbol):
-        if ID.lower() in self.symbol_table.keys():
+        if ID in self.symbol_table.keys():
             Exception(
                 'ERROR', "Conflicting declaration of '{}'".format(ID), tok)
 
-        self.symbol_table[ID.lower()] = symbol
+        self.symbol_table[ID] = symbol
 
     def get_symbol(self, tok: Token, ID: str, exception: bool = True
                    ) -> Optional[Symbol]:
         try:
-            return self.symbol_table[ID.lower()]
+            return self.symbol_table[ID]
         except KeyError:
             if self.parent is not None:
                 return self.parent.get_symbol(tok, ID)

@@ -6,7 +6,7 @@ options {
 
 compilationUnit: translationUnit;
 
-translationUnit: classDeclaration*;
+translationUnit: (classDeclaration | functionDeclaration)*;
 
 ///////////
 // Class //
@@ -16,7 +16,7 @@ classDeclaration:
     classModifiers 'class' IDENTIFIER classParentDeclaration? classInterfaceDeclaration? classBlock;
 
 classModifiers:
-    visibilityModifier? inheritanceModifier? scopeModifier?;
+    visibilityModifier? inheritanceModifier?;
 
 classParentDeclaration: ':' typeName;
 
@@ -231,7 +231,5 @@ visibilityModifier:
     | 'public';
 
 inheritanceModifier: 'abstract' | 'final' | 'open';
-
-scopeModifier: 'play' | 'ui';
 
 identifierList: IDENTIFIER (',' IDENTIFIER)*;

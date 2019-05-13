@@ -2,12 +2,15 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Optional, Tuple
 
+import llvmlite.ir as ir
+
 from src.gen.Wappa import Token
 from src.structs.Field import Field
 from src.structs.Type import WappaType
 
 if TYPE_CHECKING:
     from src.structs.Scope import Scope, Symbol
+    from src.structs.Symbols import SymbolTable
 
 
 class Class(WappaType):
@@ -29,7 +32,8 @@ class Class(WappaType):
 
         return ret
 
-    def compile(self, minify: bool = False) -> str:
+    def compile(self, module: ir.Module, builder: ir.IRBuilder,
+                symbols: SymbolTable) -> ir.Value:
         ID = self.ID
 
         if self.parent:

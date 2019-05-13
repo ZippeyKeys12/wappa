@@ -1,5 +1,7 @@
 from typing import Any, List, Optional, Tuple
 
+import llvmlite.ir as ir
+
 from src.gen.Wappa import Wappa
 from src.gen.WappaVisitor import WappaVisitor as BaseVisitor
 from src.stdlib import init_stdlib
@@ -16,6 +18,7 @@ from src.structs.Statement import (
     DoUntilStatement, DoWhileStatement, ExprStatement, IfStatement,
     ReturnStatement, Statement, UntilStatement, VariableDeclarationsStatement,
     VariableDeclarationStatement, WhileStatement)
+from src.structs.Symbols import SymbolTable
 from src.structs.Type import (BoolType, DoubleType, IntType, NilType,
                               PrimitiveTypes, StringType, UnitType, WappaType)
 from src.structs.Variable import Variable
@@ -41,17 +44,21 @@ class WappaVisitor(BaseVisitor):
 
         BaseVisitor.__init__(self)
 
+        self.module = ir.Module()
+
+        self.builder = ir.IRBuilder()
+
     def visit(self, tree) -> str:
         BaseVisitor.visit(self, tree)
 
-        ret = 'version "3.7.2"\n{}'.format("".join([
-            obj.compile(self.minify) for obj in self.global_scope.symbols(
-                values=True) if hasattr(obj, 'compile')]))
+        for obj in self.global_scope.symbols(values=True):
+            if hasattr(obj, 'compile'):
+                obj.compile(self.module, self.builder, SymbolTable())
 
         for exception in sorted(set(EXCEPTION_LIST), key=lambda x: x[3]):
             print("{}[{}] - {} at line {}{}".format(*exception))
 
-        return ret
+        return str(self.module)
 
     def visitClassDeclaration(
             self, ctx: Wappa.ClassDeclarationContext) -> None:
@@ -126,8 +133,11 @@ class WappaVisitor(BaseVisitor):
         scope = Scope(parent=self.scope[-1])
         self.scope.append(scope)
 
+        tok = ctx.start
+
         for p in parameters:
-            scope.add_symbol(ctx.start, p[0], p[1])
+            ID = p[0]
+            scope.add_symbol(tok, ID, Variable(ID, p[1]))
 
         if ctx.expression():
             expr = ctx.expression()
@@ -146,6 +156,7 @@ class WappaVisitor(BaseVisitor):
 
         self.scope.pop()
 
+        ID = str(ctx.IDENTIFIER())
         self.scope[-1].add_symbol(ctx.start, ID, Function(
             ID, modifiers, parameters, ret_type, block))
 
@@ -569,8 +580,14 @@ class WappaVisitor(BaseVisitor):
             else:
                 top = ctx.top.text
 
-                if top == '?' or expr_type in PrimitiveTypes:
-                    return TernaryOPExpression(tok, exprL, top, exprC, exprR)
+                if top == '?':
+                    return TernaryOPExpression(tok, exprL, exprC, exprR)
+
+                elif expr_type in PrimitiveTypes:
+                    otop = {'>': '<', '<': '>'}[top]
+                    exprL = BinaryOPExpression(tok, exprL, top, exprC)
+                    exprR = BinaryOPExpression(tok, exprC, otop, exprR)
+                    return BinaryOPExpression(tok, exprL, '&&', exprR)
 
                 if top in ['<', '>']:
                     top = {

@@ -26,5 +26,7 @@ def Exception(severity: str, arg: str, tok: Token):
         "INFO": fg.li_green,
     }[severity], severity, arg, tok.line, fg.rs))
 
+    print(EXCEPTION_LIST[-1])
+
     # if severity in ["FATAL", "ERROR"]:
     #     exit(1)

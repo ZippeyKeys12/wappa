@@ -2,6 +2,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, List, Optional, Tuple
 
+import llvmlite.ir as ir
+
+from src.structs.Symbols import SymbolTable
+
 if TYPE_CHECKING:
     from src.structs.Block import Block
     from src.structs.Type import WappaType
@@ -18,25 +22,37 @@ class Function:
         self.ret_type = ret_type
         self.block = block
 
+        self.compiled = False
+
     def inline(self, args: List[str]) -> str:
         return ""
 
-    def compile(self, minify: bool = False) -> str:
-        parameters = ",".join(
-            ("{} {}".format(x[0], x[1].ID) for x in self.parameters))
+    def compile(self, module: ir.Module, builder: ir.IRBuilder,
+                symbols: SymbolTable) -> ir.Value:
+        if not self.compiled:
+            self.compiled = True
 
-        ret_type = "void"
-        if self.ret_type:
-            ret_type = self.ret_type.ID
+            self.func_type = ir.FunctionType(self.ret_type.ir_type, [
+                p[1].ir_type for p in self.parameters])
 
-        data = (ret_type, self.ID, parameters, self.block.compile(minify))
+            self.func = ir.Function(module, self.func_type, name=self.ID)
 
-        if minify:
-            return "{} {}({}){}".format(*data)
+            symbols = SymbolTable(parent=symbols)
 
-        return """
-            {} {} ({}) {}
-        """.format(*data)
+            for i, p in enumerate(self.parameters):
+                self.func.args[i].name = p[0]
+
+                symbols.add_symbol(p[0], self.func.args[i])
+
+            block = self.func.append_basic_block('entry')
+
+            builder = ir.IRBuilder(block)
+
+            self.block.compile(module, builder, symbols)
+
+            return self.func
+        else:
+            return self.func
 
 
 class NativeFunction(Function):
@@ -49,5 +65,6 @@ class NativeFunction(Function):
     def inline(self, args: List[str]) -> str:
         return ""
 
-    def compile(self, minify: bool = False) -> str:
+    def compile(self, module: ir.Module, builder: ir.IRBuilder,
+                symbols: SymbolTable) -> ir.Value:
         return ""
