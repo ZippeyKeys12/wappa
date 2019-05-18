@@ -308,11 +308,10 @@ class WappaVisitor(BaseVisitor):
 
                 else_block: Any = len(exprs) < len(blocks)
 
-                elsif_exprs = elsif_blocks = None
+                elsif_exprs = elsif_blocks = []
                 if len(exprs) > 1:
                     elsif_exprs = list(map(self.visitExpression, exprs[1:]))
                     if else_block:
-                        elsif_blocks = []
                         for b in blocks[1:-1]:
                             scope = Scope(parent=self.scope[-1])
                             self.scope.append(scope)
@@ -321,7 +320,6 @@ class WappaVisitor(BaseVisitor):
 
                             self.scope.pop()
                     else:
-                        elsif_blocks = []
                         for b in blocks[1:]:
                             scope = Scope(parent=self.scope[-1])
                             self.scope.append(scope)

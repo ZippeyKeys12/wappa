@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, List, Optional, Tuple
 import llvmlite.ir as ir
 
 from src.structs.Symbols import SymbolTable
+from src.TypeSystem import UnitType
 
 if TYPE_CHECKING:
     from src.structs.Block import Block
@@ -49,6 +50,14 @@ class Function:
             builder = ir.IRBuilder(block)
 
             self.block.compile(module, builder, symbols)
+
+            block = builder.block
+            if not builder.block.is_terminated:
+                if self.ret_type == UnitType:
+                    builder.ret_void()
+
+                else:
+                    builder.unreachable()
 
             return self.func
         else:

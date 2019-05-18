@@ -25,8 +25,8 @@ class Statement:
 
 class IfStatement(Statement):
     def __init__(self, tok: Token, if_expr: Expression, if_block: Block,
-                 elsif_exprs: List[Expression] = None,
-                 elsif_blocks: List[Block] = None,
+                 elsif_exprs: List[Expression] = [],
+                 elsif_blocks: List[Block] = [],
                  else_block: Optional[Block] = None):
         self.tok = tok
         self.if_expr = if_expr
@@ -37,7 +37,7 @@ class IfStatement(Statement):
 
     def compile(self, module: ir.Module, builder: ir.IRBuilder,
                 symbols: SymbolTable) -> ir.Value:
-        if not self.elsif_exprs:
+        if len(self.elsif_exprs) == 0:
             if self.else_block:
                 with builder.if_else(self.if_expr.compile(
                         module, builder, symbols)) as (then, otherwise):
@@ -47,7 +47,7 @@ class IfStatement(Statement):
                     with otherwise:
                         self.else_block.compile(module, builder, symbols)
 
-                    builder.unreachable()
+                    return
             else:
                 with builder.if_then(
                         self.if_expr.compile(module, builder, symbols)):
