@@ -28,7 +28,7 @@ BoolType = WappaType("Boolean", ir.IntType(1), supertypes=[ByteType])
 ObjectType = WappaType("Object", supertypes=[AnyType])
 
 
-UnitType = WappaType("Unit", supertypes=[AnyType])
+UnitType = WappaType("Unit", ir.VoidType(), supertypes=[AnyType])
 
 
 NothingType = WappaType("Nothing")
