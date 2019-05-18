@@ -1,6 +1,3 @@
-import llvmlite.ir as ir
-
-from src.structs.Symbols import SymbolTable
 from src.structs.Type import WappaType
 
 

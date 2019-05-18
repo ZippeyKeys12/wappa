@@ -10,7 +10,6 @@ if TYPE_CHECKING:
     from src.structs.Type import WappaType
 
 
-
 class Field:
     def __init__(self, tok, ID: str, object_type: WappaType, access_type: str,
                  modifiers: Tuple[str] = None, value: Expression = None):

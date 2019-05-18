@@ -47,7 +47,7 @@ class IfStatement(Statement):
                     with otherwise:
                         self.else_block.compile(module, builder, symbols)
 
-                return
+                    builder.unreachable()
             else:
                 with builder.if_then(
                         self.if_expr.compile(module, builder, symbols)):

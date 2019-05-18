@@ -24,6 +24,9 @@ class Class(WappaType):
         self.parent = parent
         self.modifiers = modifiers
 
+        if self.parent is not None:
+            self.supertypes = [parent]
+
     def get_member(self, tok: Token, ID: str) -> Symbol:
         ret = self.scope.get_symbol(tok, ID, not self.parent)
 

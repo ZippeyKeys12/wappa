@@ -19,9 +19,10 @@ from src.structs.Statement import (
     ReturnStatement, Statement, UntilStatement, VariableDeclarationsStatement,
     VariableDeclarationStatement, WhileStatement)
 from src.structs.Symbols import SymbolTable
-from src.structs.Type import (BoolType, DoubleType, IntType, NilType,
-                              PrimitiveTypes, StringType, UnitType, WappaType)
+from src.structs.Type import WappaType
 from src.structs.Variable import Variable
+from src.TypeSystem import (BoolType, DoubleType, IntType, NilType,
+                            PrimitiveTypes, StringType, UnitType)
 from src.util import EXCEPTION_LIST, Exception
 
 

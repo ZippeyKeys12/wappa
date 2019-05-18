@@ -1,14 +1,14 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, List, Optional, Tuple
+from typing import TYPE_CHECKING, List, Optional, Tuple
 
 import llvmlite.ir as ir
 
 from src.gen.Wappa import Token
 from src.structs.Field import Field
-from src.structs.Type import (BoolType, DoubleType, IntType, StringType,
-                              TypeType, WappaType)
+from src.structs.Type import WappaType
 from src.structs.Variable import Variable
+from src.TypeSystem import BoolType, DoubleType, IntType, TypeType
 from src.util import Exception
 
 if TYPE_CHECKING:
@@ -33,7 +33,8 @@ class Expression:
     def compile(self, module: ir.Module, builder: ir.IRBuilder,
                 symbols: SymbolTable) -> ir.Value:
         raise NotImplementedError(
-            "'compile' not implemented for {}: {}".format(type(self), self.text))
+            "'compile' not implemented for {}: {}".format(
+                type(self), self.text))
 
 
 class Literal(Expression):
@@ -212,12 +213,10 @@ class BinaryOPExpression(Expression):
                 return builder.add(exprL, exprR)
 
             if exprL_type == IntType:
-                return builder.fadd(
-                    builder.sitofp(exprL, DoubleType.ir_type), exprR)
+                exprL = builder.sitofp(exprL, DoubleType.ir_type)
 
             if exprR_type == IntType:
-                return builder.fadd(
-                    exprL, builder.sitofp(exprR, DoubleType.ir_type))
+                exprR = builder.sitofp(exprR, DoubleType.ir_type)
 
             return builder.fadd(exprL, exprR)
 
@@ -226,12 +225,10 @@ class BinaryOPExpression(Expression):
                 return builder.sub(exprL, exprR)
 
             if exprL_type == IntType:
-                return builder.fsub(
-                    builder.sitofp(exprL, DoubleType.ir_type), exprR)
+                exprL = builder.sitofp(exprL, DoubleType.ir_type)
 
             if exprR_type == IntType:
-                return builder.fsub(
-                    exprL, builder.sitofp(exprR, DoubleType.ir_type))
+                exprR = builder.sitofp(exprR, DoubleType.ir_type)
 
             return builder.fsub(exprL, exprR)
 
@@ -240,23 +237,19 @@ class BinaryOPExpression(Expression):
                 return builder.mul(exprL, exprR)
 
             if exprL_type == IntType:
-                return builder.fmul(
-                    builder.sitofp(exprL, DoubleType.ir_type), exprR)
+                exprL = builder.sitofp(exprL, DoubleType.ir_type)
 
             if exprR_type == IntType:
-                return builder.fmul(
-                    exprL, builder.sitofp(exprR, DoubleType.ir_type))
+                exprR = builder.sitofp(exprR, DoubleType.ir_type)
 
             return builder.fmul(exprL, exprR)
 
         if bop == '/':
             if exprL_type == IntType:
-                return builder.fdiv(
-                    builder.sitofp(exprL, DoubleType.ir_type), exprR)
+                exprL = builder.sitofp(exprL, DoubleType.ir_type)
 
             if exprR_type == IntType:
-                return builder.fdiv(
-                    exprL, builder.sitofp(exprR, DoubleType.ir_type))
+                exprR = builder.sitofp(exprR, DoubleType.ir_type)
 
             return builder.fdiv(exprL, exprR)
 
@@ -268,12 +261,10 @@ class BinaryOPExpression(Expression):
                 return builder.srem(exprL, exprR)
 
             if exprL_type == IntType:
-                return builder.frem(
-                    builder.sitofp(exprL, DoubleType.ir_type), exprR)
+                exprL = builder.sitofp(exprL, DoubleType.ir_type)
 
             if exprR_type == IntType:
-                return builder.frem(
-                    exprL, builder.sitofp(exprR, DoubleType.ir_type))
+                exprR = builder.sitofp(exprR, DoubleType.ir_type)
 
             return builder.frem(exprL, exprR)
 
@@ -291,12 +282,10 @@ class BinaryOPExpression(Expression):
                 return builder.icmp_signed(bop, exprL, exprR)
 
             if exprL_type == IntType:
-                return builder.fcmp_ordered(
-                    bop, builder.sitofp(exprL, DoubleType.ir_type), exprR)
+                exprL = builder.sitofp(exprL, DoubleType.ir_type)
 
             if exprR_type == IntType:
-                return builder.fcmp_ordered(
-                    bop, exprL, builder.sitofp(exprR, DoubleType.ir_type))
+                exprR = builder.sitofp(exprR, DoubleType.ir_type)
 
             return builder.fcmp_ordered(bop, exprL, exprR)
 
@@ -305,12 +294,10 @@ class BinaryOPExpression(Expression):
                 return builder.icmp_signed(bop, exprL, exprR)
 
             if exprL_type == IntType:
-                return builder.fcmp_ordered(
-                    bop, builder.sitofp(exprL, DoubleType.ir_type), exprR)
+                exprL = builder.sitofp(exprL, DoubleType.ir_type)
 
             if exprR_type == IntType:
-                return builder.fcmp_ordered(
-                    bop, exprL, builder.sitofp(exprR, DoubleType.ir_type))
+                exprR = builder.sitofp(exprR, DoubleType.ir_type)
 
             return builder.fcmp_ordered(bop, exprL, exprR)
 
@@ -319,12 +306,10 @@ class BinaryOPExpression(Expression):
                 return builder.icmp_signed(bop, exprL, exprR)
 
             if exprL_type == IntType:
-                return builder.fcmp_unordered(
-                    bop, builder.sitofp(exprL, DoubleType.ir_type), exprR)
+                exprL = builder.sitofp(exprL, DoubleType.ir_type)
 
             if exprR_type == IntType:
-                return builder.fcmp_unordered(
-                    bop, exprL, builder.sitofp(exprR, DoubleType.ir_type))
+                exprR = builder.sitofp(exprR, DoubleType.ir_type)
 
             return builder.fcmp_unordered(bop, exprL, exprR)
 

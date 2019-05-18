@@ -22,10 +22,6 @@ def main():
     visitor = WappaVisitor(minify)
     module = visitor.visit(tree)
 
-    # if minify:
-    #     minifier = WappaMinifier()
-    #     text = minifier.zscript(text)
-
     with open("ex/test.ll", "w") as f:
         f.write(module)
 

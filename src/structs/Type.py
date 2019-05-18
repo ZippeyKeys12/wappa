@@ -17,7 +17,14 @@ class WappaType:
         self.supertypes = supertypes
 
     def is_a(self, other: WappaType):
-        return self == other or other in self.supertypes
+        if self == other:
+            return True
+
+        for stype in self.supertypes:
+            if stype.is_a(other):
+                return True
+
+        return False
 
     def get_member(self, tok: Token, ID: str) -> Symbol:
         raise NotImplementedError(
@@ -25,32 +32,3 @@ class WappaType:
 
     def __eq__(self, value):
         return value == self.ID
-
-
-DoubleType = WappaType("Double", ir.DoubleType())
-
-
-IntType = WappaType("Int", ir.IntType(32), supertypes=[DoubleType])
-
-
-StringType = WappaType("String")
-
-
-BoolType = WappaType("Boolean", ir.IntType(1))
-
-
-NilType = WappaType("Nil")
-
-UnitType = WappaType("Void")
-
-PrimitiveTypes = [IntType, DoubleType, StringType, BoolType, NilType]
-
-
-class TypeType(WappaType):
-    def __init__(self, ref: WappaType):
-        self.ref = ref
-
-        WappaType.__init__(self, ref.ID)
-
-    def __eq__(self, value) -> bool:
-        return value is self.ref
