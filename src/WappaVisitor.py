@@ -22,7 +22,7 @@ from src.structs.Symbols import SymbolTable
 from src.structs.Type import WappaType
 from src.structs.Variable import Variable
 from src.TypeSystem import (BoolType, DoubleType, IntType, NilType,
-                            PrimitiveTypes, StringType, UnitType)
+                            PrimitiveTypes, StringType, TypeSolver, UnitType)
 from src.util import EXCEPTION_LIST, Exception
 
 
@@ -48,6 +48,8 @@ class WappaVisitor(BaseVisitor):
         self.module = ir.Module()
 
         self.builder = ir.IRBuilder()
+
+        self.tsolver = TypeSolver()
 
     def visit(self, tree) -> str:
         BaseVisitor.visit(self, tree)
@@ -261,7 +263,7 @@ class WappaVisitor(BaseVisitor):
                 var_act_type = init_type
 
             if init_type is not None:
-                if not init_type.is_a(var_act_type):
+                if not init_type.is_a(self.tsolver, var_act_type):
                     Exception(
                         "ERROR",
                         "Expression of type {}, does not match type {}".format(

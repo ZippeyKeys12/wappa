@@ -7,6 +7,7 @@ import llvmlite.ir as ir
 if TYPE_CHECKING:
     from src.gen.Wappa import Token
     from src.structs.Scope import Symbol
+    from src.TypeSystem import TypeSolver
 
 
 class WappaType:
@@ -16,12 +17,12 @@ class WappaType:
         self.ir_type = ir_type
         self.supertypes = supertypes
 
-    def is_a(self, other: WappaType):
-        if self == other:
+    def is_a(self, tsolver: TypeSolver, other: WappaType) -> bool:
+        if self is other:
             return True
 
         for stype in self.supertypes:
-            if stype.is_a(other):
+            if stype.is_a(tsolver, other):
                 return True
 
         return False

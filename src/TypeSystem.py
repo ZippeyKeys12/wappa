@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Iterable, List, Optional
 
 import llvmlite.ir as ir
@@ -48,21 +50,60 @@ class TypeType(WappaType):
 
 class IntersectionType(WappaType):
     def __init__(self, ID: str, wtypes: Iterable[WappaType]):
-        self.ID = ID
-        self.supertypes = wtypes
+        WappaType.__init__(self, ID, supertypes=list(wtypes))
 
-    def is_a(self, other):
-        return super().is_a(other)
+    def __eq__(self, value) -> bool:
+        if self is value:
+            return True
+
+        if not isinstance(value, IntersectionType):
+            return False
+
+        if len(value.supertypes) != len(self.supertypes):
+            return False
+
+        for stype in self.supertypes:
+            if stype not in value.supertypes:
+                return False
+
+        return True
+
+
+class UnionType(WappaType):
+    def __init__(self, ID: str, wtypes: Iterable[WappaType]):
+        WappaType.__init__(self, ID)
+
+        self.options = wtypes
+
+    def is_a(self, tsolver: TypeSolver, other: WappaType) -> bool:
+        nca = tsolver.nca(self, other)
+
+        if nca is None:
+            return False
+
+        return nca.is_a(other)
 
     def __eq__(self, value):
-        return (isinstance(value, IntersectionType)
-                and value.supertypes == self.supertypes)
+        if self is value:
+            return True
+
+        if not isinstance(value, IntersectionType):
+            return False
+
+        if len(value.supertypes) != len(self.supertypes):
+            return False
+
+        for stype in self.supertypes:
+            if stype not in value.supertypes:
+                return False
+
+        return True
 
 
 class TypeSolver:
     linearized_hierarchies = {}
 
-    def linearize_hierarchy(self, wtype: WappaType) -> List[WappaType]:
+    def linearize_hierarchy(self, wtype: WappaType) -> Iterable[WappaType]:
         """Returns the supertypes, linearized, increasing in distance"""
 
         if wtype.ID in self.linearized_hierarchies.keys():
@@ -73,32 +114,71 @@ class TypeSolver:
         supertypes.append(wtype)
 
         for stype in wtype.supertypes:
-            # if stype in supertypes:
-            #     continue
+            if stype in supertypes:
+                continue
 
             for sstype in self.linearize_hierarchy(stype):
                 if sstype not in supertypes:
-                    supertypes.append(sstype)
+                    for index, ssstype in enumerate(supertypes):
+                        if sstype.is_a(self, ssstype):
+                            supertypes.insert(index, stype)
+                            break
+                    else:
+                        supertypes.append(sstype)
 
         self.linearized_hierarchies[wtype.ID] = supertypes
 
         return supertypes
 
+    shared_hierarchies = {}
+
+    def shared_hierarchy(
+            self, *wtypes: Iterable[WappaType]) -> List[WappaType]:
+        """Returns the intersection of their linearized hierarchies"""
+
+        if len(wtypes) < 2:
+            raise ValueError("'nce' Must have at least 2 types given")
+
+        ret = self.linearize_hierarchy(wtypes[0])
+
+        for wtype in wtypes[1:]:
+            for r in ret:
+                if not wtype.is_a(self, r):
+                    ret.remove(r)
+
+        return ret
+
     ncas = {}
 
-    def nca(self, wtype_1: WappaType, wtype_2: WappaType
-            ) -> Optional[WappaType]:
+    def nca(self, *wtypes: Iterable[WappaType]) -> Optional[WappaType]:
         """Returns the nearest common ancestor"""
 
-        if (wtype_1.ID, wtype_2.ID) in self.ncas.keys():
-            return self.ncas[(wtype_1.ID, wtype_2.ID)]
+        if len(wtypes) < 2:
+            raise ValueError("'nca' Must have at least 2 types given")
+
+        ret = wtypes[0]
+        for wtype in wtypes[1:]:
+            ret = self._nca(ret, wtype)
+
+            if ret is None or ret == AnyType:
+                return ret
+
+        return ret
+
+    def _nca(self, wtype_1: WappaType, wtype_2: WappaType
+             ) -> Optional[WappaType]:
+        """Returns the nearest common ancestor"""
+
+        key = (wtype_1.ID, wtype_2.ID)
+        if key in self.ncas.keys():
+            return self.ncas[key]
 
         ret = None
 
-        if wtype_1.is_a(wtype_2):
+        if wtype_1.is_a(self, wtype_2):
             ret = wtype_2
 
-        elif wtype_2.is_a(wtype_1):
+        elif wtype_2.is_a(self, wtype_1):
             ret = wtype_1
 
         else:
@@ -108,7 +188,7 @@ class TypeSolver:
                     ret = stype
                     break
 
-        self.ncas[(wtype_1.ID, wtype_2.ID)] = ret
+        self.ncas[key] = ret
 
         return ret
 
