@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 
 
 class Class(WappaType):
-    def __init__(self, scope: Scope, ID: str, parent: Optional[Class],
+    def __init__(self, scope: Scope, ID: str, parent: Class,
                  modifiers: Tuple[Optional[str], Optional[str], Optional[str]]
                  ):
         WappaType.__init__(self, ID)

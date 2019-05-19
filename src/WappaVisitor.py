@@ -21,8 +21,9 @@ from src.structs.Statement import (
 from src.structs.Symbols import SymbolTable
 from src.structs.Type import WappaType
 from src.structs.Variable import Variable
-from src.TypeSystem import (BoolType, DoubleType, IntType, NilType,
-                            PrimitiveTypes, StringType, TypeSolver, UnitType)
+from src.TypeSystem import (
+    BoolType, DoubleType, IntType, NilType, ObjectType, PrimitiveTypes,
+    StringType, TypeSolver, UnitType)
 from src.util import EXCEPTION_LIST, Exception
 
 
@@ -71,6 +72,8 @@ class WappaVisitor(BaseVisitor):
 
         if parent is not None:
             parent = self.visitClassParentDeclaration(parent)
+        else:
+            parent = ObjectType
 
         scope = Scope(parent=self.scope[-1])
 
