@@ -1,3 +1,4 @@
+from functools import singledispatch, update_wrapper
 from typing import List, Tuple
 
 from sty import fg
@@ -30,3 +31,14 @@ def Exception(severity: str, arg: str, tok: Token):
 
     # if severity in ["FATAL", "ERROR"]:
     #     exit(1)
+
+
+def methoddispatch(func):
+    dispatcher = singledispatch(func)
+
+    def wrapper(*args, **kw):
+        return dispatcher.dispatch(args[1].__class__)(*args, **kw)
+
+    wrapper.register = dispatcher.register
+    update_wrapper(wrapper, func)
+    return wrapper

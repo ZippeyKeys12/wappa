@@ -1,10 +1,12 @@
 from __future__ import annotations
 
-from typing import Iterable, List, Optional
+from functools import lru_cache
+from typing import Iterable, List, Optional, Tuple
 
 import llvmlite.ir as ir
 
 from src.structs.Type import WappaType
+from src.util import methoddispatch
 
 AnyType = WappaType("Any")
 NilType = WappaType("Nil")
@@ -47,10 +49,13 @@ class TypeType(WappaType):
     def __eq__(self, value) -> bool:
         return value is self.ref
 
+    def __hash__(self):
+        return super().__hash__() ^ "typetype".__hash__()
+
 
 class IntersectionType(WappaType):
-    def __init__(self, ID: str, wtypes: Iterable[WappaType]):
-        WappaType.__init__(self, ID, supertypes=list(wtypes))
+    def __init__(self, ID: str, wtypes: List[WappaType]):
+        WappaType.__init__(self, ID, supertypes=wtypes)
 
     def __eq__(self, value) -> bool:
         if self is value:
@@ -68,9 +73,17 @@ class IntersectionType(WappaType):
 
         return True
 
+    def __hash__(self):
+        ret = super.__hash__()
+
+        for stype in self.supertypes:
+            ret ^= stype.__hash__()
+
+        return ret ^ "intersection".__hash__()
+
 
 class UnionType(WappaType):
-    def __init__(self, ID: str, wtypes: Iterable[WappaType]):
+    def __init__(self, ID: str, wtypes: List[WappaType]):
         WappaType.__init__(self, ID)
 
         self.options = wtypes
@@ -99,15 +112,19 @@ class UnionType(WappaType):
 
         return True
 
+    def __hash__(self):
+        ret = super.__hash__()
+
+        for stype in self.options:
+            ret ^= stype.__hash__()
+
+        return ret ^ "intersection".__hash__()
+
 
 class TypeSolver:
-    __cache_linearized_hierarchy = {}
-
+    @lru_cache()
     def linearize_hierarchy(self, wtype: WappaType) -> Iterable[WappaType]:
         """Returns the supertypes, linearized, increasing in distance"""
-
-        if wtype.ID in self.__cache_linearized_hierarchy.keys():
-            return self.__cache_linearized_hierarchy[wtype.ID]
 
         supertypes = []
 
@@ -126,10 +143,9 @@ class TypeSolver:
                     else:
                         supertypes.append(sstype)
 
-        self.__cache_linearized_hierarchy[wtype.ID] = supertypes
-
         return supertypes
 
+    @lru_cache()
     def shared_hierarchy(
             self, wtypes: Iterable[WappaType]) -> List[WappaType]:
         """Returns the intersection of their linearized hierarchies"""
@@ -146,11 +162,22 @@ class TypeSolver:
 
         return ret
 
-    __cache_ncas = {}
-
-    def ncas(self, wtypes: Iterable[WappaType]) -> Optional[WappaType]:
+    @methoddispatch
+    def ncas(self, wtypes) -> Optional[WappaType]:
         """Returns the nearest common ancestor"""
 
+        raise TypeError(
+            "'wtypes' must be an [list, set, tuple], is {}".format(
+                type(wtypes)))
+
+    @ncas.register(list)
+    @ncas.register(set)
+    def _(self, wtypes: Iterable[WappaType]) -> Optional[WappaType]:
+        return self.ncas(tuple(wtypes))
+
+    @ncas.register(tuple)
+    @lru_cache()
+    def _(self, wtypes: Tuple[WappaType]) -> Optional[WappaType]:
         if len(wtypes) < 2:
             raise ValueError("'nca' Must have at least 2 types given")
 
@@ -168,13 +195,10 @@ class TypeSolver:
 
         return ret
 
+    @lru_cache()
     def _ncas(self, wtype_1: WappaType, wtype_2: WappaType
               ) -> List[WappaType]:
         """Returns the nearest common ancestor"""
-
-        key = (wtype_1.ID, wtype_2.ID)
-        if key in self.__cache_ncas.keys():
-            return self.__cache_ncas[key]
 
         ret = []
 
@@ -190,8 +214,6 @@ class TypeSolver:
                 if (stype in genealogy and
                         (len(ret) == 0 or not ret[-1].is_a(self, stype))):
                     ret.append(stype)
-
-        self.__cache_ncas[key] = ret
 
         return ret
 
@@ -209,9 +231,22 @@ class TypeSolver:
 
     #         prev = wtype
 
-    def __simplify_hierarchy(self, wtypes: List[WappaType]) -> List[WappaType]:
+    @methoddispatch
+    def __simplify_hierarchy(self, wtypes) -> List[WappaType]:
         """Returns a simplified hierarchy"""
 
+        raise TypeError(
+            "'wtypes' must be an [list, set, tuple], is {}".format(
+                type(wtypes)))
+
+    @__simplify_hierarchy.register(list)
+    @__simplify_hierarchy.register(set)
+    def _(self, wtypes: Iterable[WappaType]) -> List[WappaType]:
+        return self.__simplify_hierarchy(tuple(wtypes))
+
+    @__simplify_hierarchy.register(tuple)
+    @lru_cache()
+    def _(self, wtypes: Tuple[WappaType]) -> List[WappaType]:
         ret = [wtypes[0]]
 
         for item in wtypes[1:]:
