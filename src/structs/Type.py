@@ -33,3 +33,6 @@ class WappaType:
 
     def __eq__(self, value):
         return value == self.ID
+
+    def __hash__(self):
+        return self.ID.__hash__()

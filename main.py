@@ -17,9 +17,8 @@ def main():
     parser = Wappa(tokens)
     parser.buildParseTrees = True
 
-    minify = False
     tree = parser.compilationUnit()
-    visitor = WappaVisitor(minify)
+    visitor = WappaVisitor()
     module = visitor.visit(tree)
 
     with open("ex/test.ll", "w") as f:

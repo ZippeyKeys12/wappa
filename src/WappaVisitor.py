@@ -4,7 +4,6 @@ import llvmlite.ir as ir
 
 from src.gen.Wappa import Wappa
 from src.gen.WappaVisitor import WappaVisitor as BaseVisitor
-from src.stdlib import init_stdlib
 from src.structs.Block import Block
 from src.structs.Class import Class
 from src.structs.Expression import (BinaryOPExpression, Expression,
@@ -28,9 +27,7 @@ from src.util import EXCEPTION_LIST, Exception
 
 
 class WappaVisitor(BaseVisitor):
-    def __init__(self, minify: bool = False):
-        self.minify = minify
-
+    def __init__(self):
         self.ref_scope = Scope()
         self.global_scope = Scope(parent=self.ref_scope)
         self.scope = [self.global_scope]
@@ -38,11 +35,9 @@ class WappaVisitor(BaseVisitor):
         self.ref_scope.add_symbol(None, "Bool", BoolType)
         self.ref_scope.add_symbol(None, "Int", IntType)
         self.ref_scope.add_symbol(None, "Double", DoubleType)
-        self.ref_scope.add_symbol(None, "String", StringType)
+        self.ref_scope.add_symbol(None, "Str", StringType)
         self.ref_scope.add_symbol(None, "Nil", NilType)
         self.ref_scope.add_symbol(None, "Unit", UnitType)
-
-        init_stdlib(self.ref_scope)
 
         BaseVisitor.__init__(self)
 
@@ -215,8 +210,8 @@ class WappaVisitor(BaseVisitor):
     def visitParameterList(self, ctx: Wappa.ParameterListContext
                            ) -> List[Tuple[str, WappaType]]:
         parameters: List[Tuple[str, WappaType]] = []
-        for ID, object_type in zip(ctx.IDENTIFIER(), ctx.typeName()):
-            parameters.append((str(ID), self.visitTypeName(object_type)))
+        for ID, object_type in zip(ctx.IDENTIFIER(), ctx.typeExpression()):
+            parameters.append((str(ID), self.visitTypeExpression(object_type)))
 
         return parameters
 
@@ -669,14 +664,22 @@ class WappaVisitor(BaseVisitor):
 
         return Literal(ctx.start, text, NilType)
 
-    def visitTypeOrUnit(
-            self, ctx: Wappa.TypeOrUnitContext) -> Optional[WappaType]:
-        type_name = ctx.typeName()
+    def visitTypeOrUnit(self, ctx: Wappa.TypeOrUnitContext) -> WappaType:
+        return self.visitTypeExpression(ctx.typeExpression())
 
-        if type_name:
-            return self.visitTypeName(type_name)
+    def visitTypeExpression(
+            self, ctx: Wappa.TypeExpressionContext) -> WappaType:
+        if ctx.bop is not None:
+            # bop = ctx.bop.text
+            pass
 
-        return None
+            # if bop == '&':
+            #     return Intersection
+            # elif bop=='|':
+            #     return Union
+
+        else:
+            return self.visitTypeName(ctx.typeName())
 
     def visitTypeName(self, ctx: Wappa.TypeNameContext) -> WappaType:
         return self.scope[-1].get_symbol(ctx.start, ctx.getText())

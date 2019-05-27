@@ -15,8 +15,7 @@ translationUnit: (classDeclaration | functionDeclaration)*;
 classDeclaration:
     classModifiers 'class' IDENTIFIER classParentDeclaration? classInterfaceDeclaration? classBlock;
 
-classModifiers:
-    visibilityModifier? inheritanceModifier?;
+classModifiers: visibilityModifier? inheritanceModifier?;
 
 classParentDeclaration: ':' typeName;
 
@@ -68,7 +67,9 @@ methodDeclaration:
     )? ')' ('->' typeOrUnit)? (block | '=' expression ';');
 
 parameterList:
-    IDENTIFIER ':' typeName (',' IDENTIFIER ':' typeName)*;
+    IDENTIFIER ':' typeExpression (
+        ',' IDENTIFIER ':' typeExpression
+    )*;
 
 functionCall:
     IDENTIFIER '(' expressionList? functionKwarguments? ')';
@@ -214,7 +215,12 @@ floatLiteral: FLOAT_LITERAL | HEX_FLOAT_LITERAL;
 stringLiteral:  STRING_LITERAL | INTERP_STRING_LITERAL;
 staticTypedVar: 'var' | 'val';
 
-typeOrUnit: typeName;
+typeOrUnit: typeExpression;
+
+typeExpression:
+    typeName
+    | typeExpression bop = '&' typeExpression
+    | typeExpression bop = '|' typeExpression;
 
 typeName: IDENTIFIER typeArguments? typeConstraints?;
 
