@@ -150,4 +150,4 @@ src/gen
 !src/gen/*.g4
 
 # Specific
-gzdoom_log.txt
+ex
