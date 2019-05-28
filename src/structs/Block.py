@@ -5,9 +5,9 @@ from typing import TYPE_CHECKING, Iterable
 import llvmlite.ir as ir
 
 if TYPE_CHECKING:
-    from src.structs.Scope import Scope
-    from src.structs.Statement import Statement
-    from src.structs.Symbols import SymbolTable
+    from .Scope import Scope
+    from .Statement import Statement
+    from .Symbols import SymbolTable
 
 
 class Block:

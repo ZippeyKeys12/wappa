@@ -2,14 +2,14 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union
 
-from src.gen.Wappa import Token
-from src.util import Exception
+from ..gen.Wappa import Token
+from ..util import Exception
 
 if TYPE_CHECKING:
-    from src.structs.Field import Field
-    from src.structs.Function import Function
-    from src.structs.Type import WappaType
-    from src.structs.Variable import Variable
+    from .Field import Field
+    from .Function import Function
+    from .Type import WappaType
+    from .Variable import Variable
 
     Symbol = Union[WappaType, Field, Function, Variable]
 

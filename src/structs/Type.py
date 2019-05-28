@@ -5,9 +5,9 @@ from typing import TYPE_CHECKING, List
 import llvmlite.ir as ir
 
 if TYPE_CHECKING:
-    from src.gen.Wappa import Token
-    from src.structs.Scope import Symbol
-    from src.TypeSystem import TypeSolver
+    from ..gen.Wappa import Token
+    from .Scope import Symbol
+    from ..TypeSystem import TypeSolver
 
 
 class WappaType:

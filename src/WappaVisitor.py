@@ -2,28 +2,28 @@ from typing import Any, List, Optional, Tuple
 
 import llvmlite.ir as ir
 
-from src.gen.Wappa import Wappa
-from src.gen.WappaVisitor import WappaVisitor as BaseVisitor
-from src.structs.Block import Block
-from src.structs.Class import Class
-from src.structs.Expression import (BinaryOPExpression, Expression,
-                                    FunctionCallExpression, Literal,
-                                    PostfixOPExpression, PrefixOPExpression,
-                                    Reference, TernaryOPExpression)
-from src.structs.Field import Field
-from src.structs.Function import Function
-from src.structs.Scope import Scope
-from src.structs.Statement import (
-    DoUntilStatement, DoWhileStatement, ExprStatement, IfStatement,
-    ReturnStatement, Statement, UntilStatement, VariableDeclarationsStatement,
-    VariableDeclarationStatement, WhileStatement)
-from src.structs.Symbols import SymbolTable
-from src.structs.Type import WappaType
-from src.structs.Variable import Variable
-from src.TypeSystem import (
-    BoolType, DoubleType, IntType, NilType, ObjectType, PrimitiveTypes,
-    StringType, TypeSolver, UnitType)
-from src.util import EXCEPTION_LIST, Exception
+from .gen.Wappa import Wappa
+from .gen.WappaVisitor import WappaVisitor as BaseVisitor
+from .structs.Block import Block
+from .structs.Class import Class
+from .structs.Expression import (BinaryOPExpression, Expression,
+                                 FunctionCallExpression, Literal,
+                                 PostfixOPExpression, PrefixOPExpression,
+                                 Reference, TernaryOPExpression)
+from .structs.Field import Field
+from .structs.Function import Function
+from .structs.Scope import Scope
+from .structs.Statement import (DoUntilStatement, DoWhileStatement,
+                                ExprStatement, IfStatement, ReturnStatement,
+                                Statement, UntilStatement,
+                                VariableDeclarationsStatement,
+                                VariableDeclarationStatement, WhileStatement)
+from .structs.Symbols import SymbolTable
+from .structs.Type import WappaType
+from .structs.Variable import Variable
+from .TypeSystem import (BoolType, DoubleType, IntType, NilType, ObjectType,
+                         PrimitiveTypes, StringType, TypeSolver, UnitType)
+from .util import EXCEPTION_LIST, Exception
 
 
 class WappaVisitor(BaseVisitor):
@@ -66,14 +66,15 @@ class WappaVisitor(BaseVisitor):
         parent = ctx.classParentDeclaration()
 
         if parent is not None:
-            parent = self.visitClassParentDeclaration(parent)
+            parent, interfaces = self.visitClassParentDeclaration(parent)
         else:
-            parent = ObjectType
+            parent, interfaces = ObjectType, []
 
         scope = Scope(parent=self.scope[-1])
 
         self.scope[-1].add_symbol(ctx.start, ID, Class(
-            scope, ID, parent, self.visitClassModifiers(ctx.classModifiers())))
+            scope, ID, parent, interfaces,
+            self.visitClassModifiers(ctx.classModifiers())))
 
         self.scope.append(scope)
 
@@ -91,8 +92,17 @@ class WappaVisitor(BaseVisitor):
 
     def visitClassParentDeclaration(
             self, ctx: Wappa.ClassParentDeclarationContext
-    ) -> Optional[WappaType]:
-        return self.visitTypeName(ctx.typeName())
+    ) -> List[WappaType]:
+        parent = ObjectType
+        if ctx.typeName():
+            parent = self.visitTypeName(ctx.typeName())
+
+        interfaces = []
+        if ctx.interfaceSpecifierList():
+            interfaces = self.visitInterfaceSpecifierList(
+                ctx.interfaceSpecifierList())
+
+        return parent, interfaces
 
     def visitClassBlock(self, ctx: Wappa.ClassBlockContext):
         for member in ctx.memberDeclaration():
@@ -128,8 +138,9 @@ class WappaVisitor(BaseVisitor):
             parameters = self.visitParameterList(ctx.parameterList())
 
         ret_type = None
-        if ctx.typeOrUnit():
-            ret_type = self.visitTypeOrUnit(ctx.typeOrUnit())
+        if ctx.typeExpressionOrUnit():
+            ret_type = self.visitTypeExpressionOrUnit(
+                ctx.typeExpressionOrUnit())
 
         scope = Scope(parent=self.scope[-1])
         self.scope.append(scope)
@@ -169,8 +180,9 @@ class WappaVisitor(BaseVisitor):
             parameters = self.visitParameterList(ctx.parameterList())
 
         ret_type = None
-        if ctx.typeOrUnit():
-            ret_type = self.visitTypeOrUnit(ctx.typeOrUnit())
+        if ctx.typeExpressionOrUnit():
+            ret_type = self.visitTypeExpressionOrUnit(
+                ctx.typeExpressionOrUnit())
 
         scope = Scope(parent=self.scope[-1])
         self.scope.append(scope)
@@ -664,9 +676,6 @@ class WappaVisitor(BaseVisitor):
 
         return Literal(ctx.start, text, NilType)
 
-    def visitTypeOrUnit(self, ctx: Wappa.TypeOrUnitContext) -> WappaType:
-        return self.visitTypeExpression(ctx.typeExpression())
-
     def visitTypeExpression(
             self, ctx: Wappa.TypeExpressionContext) -> WappaType:
         if ctx.bop is not None:
@@ -682,17 +691,18 @@ class WappaVisitor(BaseVisitor):
             return self.visitTypeName(ctx.typeName())
 
     def visitTypeName(self, ctx: Wappa.TypeNameContext) -> WappaType:
-        return self.scope[-1].get_symbol(ctx.start, ctx.getText())
+        ret = self.scope[-1].get_symbol(ctx.start, ctx.getText())
+
+        if not ctx.unit and ret == UnitType:
+            Exception("ERROR", "'Unit' is not an accepted type", ctx.start)
+
+        return ret
 
     def __safe_text(self, ctx, func: str = "getText", default="") -> str:
         if ctx is None:
             return default
 
-        ret = getattr(ctx, func)()
-        if ret is not None:
-            return ret
-
-        return self.visitChildren(ctx)
+        return getattr(ctx, func, default=default)() or default
 
     def __magic_method(self, ID: str):
         return "__{}__".format(ID)

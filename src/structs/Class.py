@@ -1,31 +1,34 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Optional, Tuple
+from typing import TYPE_CHECKING, List, Optional, Tuple
 
 import llvmlite.ir as ir
 
-from src.gen.Wappa import Token
-from src.structs.Field import Field
-from src.structs.Type import WappaType
+from ..gen.Wappa import Token
+from .Field import Field
+from .Type import WappaType
 
 if TYPE_CHECKING:
-    from src.structs.Scope import Scope, Symbol
-    from src.structs.Symbols import SymbolTable
+    from .Interface import Interface
+    from .Scope import Scope, Symbol
+    from .Symbols import SymbolTable
 
 
 class Class(WappaType):
-    def __init__(self, scope: Scope, ID: str, parent: Class,
-                 modifiers: Tuple[Optional[str], Optional[str], Optional[str]]
-                 ):
-        WappaType.__init__(self, ID)
+    def __init__(
+        self, scope: Scope, ID: str, parent: Class,
+        interfaces: List[Interface],
+        modifiers: Tuple[Optional[str], Optional[str], Optional[str]]
+    ):
+        self.interfaces = interfaces.copy()
+        interfaces.append(parent)
+
+        WappaType.__init__(self, ID, supertypes=interfaces)
 
         self.scope = scope
         scope.owner = self
         self.parent = parent
         self.modifiers = modifiers
-
-        if self.parent is not None:
-            self.supertypes = [parent]
 
     def get_member(self, tok: Token, ID: str) -> Symbol:
         ret = self.scope.get_symbol(tok, ID, not self.parent)

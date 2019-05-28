@@ -1,4 +1,4 @@
-from src.structs.Type import WappaType
+from .Type import WappaType
 
 
 class Variable:

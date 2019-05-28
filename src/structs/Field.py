@@ -5,9 +5,9 @@ from typing import TYPE_CHECKING, Optional, Tuple
 import llvmlite.ir as ir
 
 if TYPE_CHECKING:
-    from src.structs.Expression import Expression
-    from src.structs.Symbols import SymbolTable
-    from src.structs.Type import WappaType
+    from .Expression import Expression
+    from .Symbols import SymbolTable
+    from .Type import WappaType
 
 
 class Field:

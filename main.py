@@ -37,23 +37,23 @@ def main():
 
     with llvm.create_mcjit_compiler(llvm_module, tm) as ee:
         ee.finalize_object()
+
+        asm = tm.emit_assembly(llvm_module)
+
         # print('=== Assembly')
-        # print(tm.emit_assembly(llvm_module))
+        # print(asm)
 
         with open('ex/test.asm', 'w') as f:
-            f.write(tm.emit_assembly(llvm_module))
+            f.write(asm)
 
-        res = get_func(ee, 'sum', c_double, c_int, c_int)(17, 42)
+        print('The result of "sum" is', get_func(
+            ee, 'sum', c_double, c_int, c_int)(17, 42))
 
-        print('The result of "sum" is', res)
+        print('The result of "eq" is', get_func(
+            ee, 'eq', c_bool, c_double, c_double)(17, 42))
 
-        res = get_func(ee, 'eq', c_bool, c_double, c_double)(17, 42)
-
-        print('The result of "eq" is', res)
-
-        res = get_func(ee, 'neq', c_bool, c_double, c_double)(17, 42)
-
-        print('The result of "neq" is', res)
+        print('The result of "neq" is', get_func(
+            ee, 'neq', c_bool, c_double, c_double)(17, 42))
 
 
 if __name__ == "__main__":

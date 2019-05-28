@@ -4,13 +4,13 @@ from typing import TYPE_CHECKING, Any, List, Optional
 
 import llvmlite.ir as ir
 
-from src.gen.Wappa import Token
+from ..gen.Wappa import Token
 
 if TYPE_CHECKING:
-    from src.structs.Block import Block
-    from src.structs.Expression import Expression
-    from src.structs.Symbols import SymbolTable
-    from src.structs.Type import WappaType
+    from .Block import Block
+    from .Expression import Expression
+    from .Symbols import SymbolTable
+    from .Type import WappaType
 
 
 class Statement:

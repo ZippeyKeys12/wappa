@@ -17,14 +17,14 @@ classDeclaration:
 
 classModifiers: visibilityModifier? inheritanceModifier?;
 
-classParentDeclaration: ':' typeName;
+classParentDeclaration: 'extends' typeName[False];
 
 classInterfaceDeclaration: 'implements' interfaceSpecifierList;
 
 interfaceSpecifierList:
     interfaceSpecifier (',' interfaceSpecifier)*;
 
-interfaceSpecifier: IDENTIFIER (BY functionCall)?;
+interfaceSpecifier: typeExpression (BY functionCall)?;
 
 innerConstructorCallList:
     innerConstructorCall (',' innerConstructorCall)*;
@@ -45,7 +45,9 @@ memberDeclaration: fieldDeclaration | methodDeclaration;
 
 fieldDeclaration:
     visibilityModifier? staticTypedVar variableDeclaratorId (
-        ':' typeName ('=' ( literal | innerConstructorCall))?
+        ':' typeName[False] (
+            '=' ( literal | innerConstructorCall)
+        )?
         | '=' ( literal | innerConstructorCall)
     ) ('{' (IDENTIFIER block)+ '}')? ';';
 
@@ -58,13 +60,16 @@ functionModifiers:
 
 functionDeclaration:
     functionModifiers 'fun' IDENTIFIER '(' parameterList? ')' (
-        '->' typeOrUnit
+        '->' typeExpressionOrUnit
     )? (block | '=' expression ';');
 
 methodDeclaration:
     functionModifiers 'fun' IDENTIFIER '(' ref = SELF (
         ',' parameterList
-    )? ')' ('->' typeOrUnit)? (block | '=' expression ';');
+    )? ')' ('->' typeExpressionOrUnit)? (
+        block
+        | '=' expression ';'
+    );
 
 parameterList:
     IDENTIFIER ':' typeExpression (
@@ -88,7 +93,7 @@ variableDeclarations:
 
 variableDeclaration:
     staticTypedVar variableDeclaratorId (
-        ':' typeName ('=' variableInitializer)?
+        ':' typeName[False] ('=' variableInitializer)?
         | ('=' variableInitializer)
     );
 
@@ -137,7 +142,7 @@ expression:
     | functionCall
     // | classDeclaration
     // | typeName arguments
-    | expression 'as' typeName
+    | expression 'as' typeName[False]
     | expression postfix = ('++' | '--')
     | prefix = ('+' | '-' | '++' | '--') expression
     | prefix = ('~' | '!') expression
@@ -149,7 +154,7 @@ expression:
     | expression top = '<' expression '<' expression
     | expression top = '>' expression '>' expression
     | expression bop = ('<=' | '>=' | '>' | '<' | '<=>') expression
-    | expression bop = 'is' typeName
+    | expression bop = 'is' typeName[False]
     | expression bop = ('==' | '===' | '!=' | '!==') expression
     | expression bop = '&' expression
     | expression bop = '^' expression
@@ -215,16 +220,26 @@ floatLiteral: FLOAT_LITERAL | HEX_FLOAT_LITERAL;
 stringLiteral:  STRING_LITERAL | INTERP_STRING_LITERAL;
 staticTypedVar: 'var' | 'val';
 
-typeOrUnit: typeExpression;
-
-typeExpression:
-    typeName
+typeExpressionOrUnit:
+    typeName[True]
     | typeExpression bop = '&' typeExpression
     | typeExpression bop = '|' typeExpression;
 
-typeName: IDENTIFIER typeArguments? typeConstraints?;
+typeExpression:
+    typeName[False]
+    | typeExpression bop = '&' typeExpression
+    | typeExpression bop = '|' typeExpression;
 
-typeNameList: typeName (',' typeName)*;
+intersectionType:
+    typeName[False]
+    | intersectionType '&' intersectionType;
+
+unionType: typeName[False] | unionType '|' unionType;
+
+typeName[unit: bool]: IDENTIFIER typeArguments? typeConstraints?;
+
+typeNameList:
+    typeName[False] (',' typeName[False])*;
 
 typeArguments: '<' typeNameList '>';
 

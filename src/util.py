@@ -3,7 +3,7 @@ from typing import List, Tuple
 
 from sty import fg
 
-from src.gen.Wappa import Token
+from .gen.Wappa import Token
 
 severity_levels = {
     "FATAL",

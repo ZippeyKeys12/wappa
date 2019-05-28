@@ -4,12 +4,12 @@ from typing import TYPE_CHECKING, List, Optional, Tuple
 
 import llvmlite.ir as ir
 
-from src.structs.Symbols import SymbolTable
-from src.TypeSystem import UnitType
+from .Symbols import SymbolTable
+from ..TypeSystem import UnitType
 
 if TYPE_CHECKING:
-    from src.structs.Block import Block
-    from src.structs.Type import WappaType
+    from .Block import Block
+    from .Type import WappaType
 
 
 class Function:

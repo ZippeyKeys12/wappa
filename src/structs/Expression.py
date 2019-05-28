@@ -4,17 +4,17 @@ from typing import TYPE_CHECKING, List, Optional, Tuple
 
 import llvmlite.ir as ir
 
-from src.gen.Wappa import Token
-from src.structs.Field import Field
-from src.structs.Type import WappaType
-from src.structs.Variable import Variable
-from src.TypeSystem import BoolType, DoubleType, IntType, TypeType
-from src.util import Exception
+from ..gen.Wappa import Token
+from ..TypeSystem import BoolType, DoubleType, IntType, TypeType
+from ..util import Exception
+from .Field import Field
+from .Type import WappaType
+from .Variable import Variable
 
 if TYPE_CHECKING:
-    from src.structs.Function import Function
-    from src.structs.Scope import Symbol
-    from src.structs.Symbols import SymbolTable
+    from .Function import Function
+    from .Scope import Symbol
+    from .Symbols import SymbolTable
 
 
 class Expression:

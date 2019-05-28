@@ -5,8 +5,8 @@ from typing import Iterable, List, Optional, Tuple
 
 import llvmlite.ir as ir
 
-from src.structs.Type import WappaType
-from src.util import methoddispatch
+from .structs.Type import WappaType
+from .util import methoddispatch
 
 AnyType = WappaType("Any")
 NilType = WappaType("Nil")
