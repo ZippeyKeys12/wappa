@@ -4,8 +4,8 @@ from typing import TYPE_CHECKING, List, Optional, Tuple
 
 import llvmlite.ir as ir
 
-from .Symbols import SymbolTable
 from ..TypeSystem import UnitType
+from .Symbols import SymbolTable
 
 if TYPE_CHECKING:
     from .Block import Block
@@ -33,8 +33,15 @@ class Function:
         if not self.compiled:
             self.compiled = True
 
-            self.func_type = ir.FunctionType(self.ret_type.ir_type, [
-                p[1].ir_type for p in self.parameters])
+            parameters = []
+            for p in self.parameters:
+                ir_type = p[1].ir_type
+                if isinstance(p[1], Class):
+                    ir_type = ir_type.as_pointer()
+
+                parameters.append(ir_type)
+
+            self.func_type = ir.FunctionType(self.ret_type.ir_type, parameters)
 
             self.func = ir.Function(module, self.func_type, name=self.ID)
 
@@ -77,3 +84,7 @@ class NativeFunction(Function):
     def compile(self, module: ir.Module, builder: ir.IRBuilder,
                 symbols: SymbolTable) -> ir.Value:
         return ""
+
+
+if True:
+    from .Class import Class

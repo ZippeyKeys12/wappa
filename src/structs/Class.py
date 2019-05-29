@@ -6,14 +6,13 @@ import llvmlite.ir as ir
 
 from ..gen.Wappa import Token
 from .Field import Field
-from .Function import Function
+
 from .Symbols import SymbolTable
 from .Type import WappaType
 
 if TYPE_CHECKING:
     from .Interface import Interface
     from .Scope import Scope, Symbol
-    from .Symbols import SymbolTable
 
 
 class Class(WappaType):
@@ -87,3 +86,7 @@ class Class(WappaType):
 
         for m in methods:
             m.compile(module, builder, symbols)
+
+
+if True:
+    from .Function import Function
