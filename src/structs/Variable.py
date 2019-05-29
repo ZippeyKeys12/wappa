@@ -1,3 +1,7 @@
+from typing import Optional
+
+import llvmlite.ir as ir
+
 from .Type import WappaType
 
 
@@ -8,3 +12,9 @@ class Variable:
 
     def type_of(self) -> WappaType:
         return self.var_type
+
+    def ir_type_of(self) -> Optional[ir.Value]:
+        try:
+            return self.type_of().ir_type
+        except AttributeError:
+            return None

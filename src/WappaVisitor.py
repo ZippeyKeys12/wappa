@@ -28,8 +28,10 @@ from .util import EXCEPTION_LIST, Exception
 
 class WappaVisitor(BaseVisitor):
     def __init__(self):
-        self.ref_scope = Scope()
-        self.global_scope = Scope(parent=self.ref_scope)
+        self.module = ir.Module()
+
+        self.ref_scope = Scope(self.module)
+        self.global_scope = Scope(self.module, parent=self.ref_scope)
         self.scope = [self.global_scope]
 
         self.ref_scope.add_symbol(None, "Bool", BoolType)
@@ -41,8 +43,6 @@ class WappaVisitor(BaseVisitor):
 
         BaseVisitor.__init__(self)
 
-        self.module = ir.Module()
-
         self.builder = ir.IRBuilder()
 
         self.tsolver = TypeSolver()
@@ -50,9 +50,10 @@ class WappaVisitor(BaseVisitor):
     def visit(self, tree) -> str:
         BaseVisitor.visit(self, tree)
 
+        symbol_table = SymbolTable()
         for obj in self.global_scope.symbols(values=True):
             if hasattr(obj, 'compile'):
-                obj.compile(self.module, self.builder, SymbolTable())
+                obj.compile(self.module, self.builder, symbol_table)
 
         for exception in sorted(set(EXCEPTION_LIST), key=lambda x: x[3]):
             print("{}[{}] - {} at line {}{}".format(*exception))
@@ -70,7 +71,7 @@ class WappaVisitor(BaseVisitor):
         else:
             parent, interfaces = ObjectType, []
 
-        scope = Scope(parent=self.scope[-1])
+        scope = Scope(self.module, parent=self.scope[-1])
 
         self.scope[-1].add_symbol(ctx.start, ID, Class(
             scope, ID, parent, interfaces,
@@ -86,8 +87,7 @@ class WappaVisitor(BaseVisitor):
             self, ctx: Wappa.ClassModifiersContext) -> Tuple[str, str, str]:
         return (
             self.__safe_text(ctx.visibilityModifier()),
-            self.__safe_text(ctx.inheritanceModifier()),
-            self.__safe_text(ctx.scopeModifier())
+            self.__safe_text(ctx.inheritanceModifier())
         )
 
     def visitClassParentDeclaration(
@@ -115,11 +115,18 @@ class WappaVisitor(BaseVisitor):
         if type_name:
             type_name = self.visitTypeName(type_name)
 
+        value = ctx.literal()
+        if value:
+            value = self.visitLiteral(value)
+
+        else:
+            value = ctx.innerConstructorCall()
+            if value:
+                value = self.visitInnerConstructorCall(value)
+
         self.scope[-1].add_symbol(ctx.start, ID, Field(
             ctx.start, ID, type_name, ctx.staticTypedVar(),
-            (ctx.visibilityModifier(),),
-            self.visitLiteral(ctx.literal())
-            or self.visitInnerConstructorCall(ctx.innerConstructorCall())))
+            (ctx.visibilityModifier(),), value))
 
     def visitFunctionModifiers(self, ctx: Wappa.FunctionModifiersContext
                                ) -> Tuple[
@@ -142,7 +149,7 @@ class WappaVisitor(BaseVisitor):
             ret_type = self.visitTypeExpressionOrUnit(
                 ctx.typeExpressionOrUnit())
 
-        scope = Scope(parent=self.scope[-1])
+        scope = Scope(self.module, parent=self.scope[-1])
         self.scope.append(scope)
 
         tok = ctx.start
@@ -184,32 +191,27 @@ class WappaVisitor(BaseVisitor):
             ret_type = self.visitTypeExpressionOrUnit(
                 ctx.typeExpressionOrUnit())
 
-        scope = Scope(parent=self.scope[-1])
+        scope = Scope(self.module, parent=self.scope[-1])
         self.scope.append(scope)
 
         tok = ctx.start
 
-        ref = ctx.ref
-        if ref.text == 'self':
-            scope.add_symbol(ref.start, 'self', Variable(
-                'self', scope.parent.owner))
+        parameters.insert(0, ('self', scope.parent.owner))
 
         for p in parameters:
             ID = p[0]
             scope.add_symbol(tok, ID, Variable(ID, p[1]))
 
-        if ctx.expression():
-            expr = ctx.expression()
+        expr = ctx.expression()
+        if expr:
+            expr_res = self.visitExpression(expr)
 
             if ret_type and ret_type != UnitType:
-                stmt = ReturnStatement(
-                    expr.start, self.visitExpression(expr))
+                stmt = ReturnStatement(expr.start, expr_res)
             else:
-                stmt = ExprStatement(
-                    expr.start, self.visitExpression(expr))
+                stmt = ExprStatement(expr.start, expr_res)
 
-            block = Block(
-                self.scope[-1], [stmt])
+            block = Block(self.scope[-1], [stmt])
         else:
             block = self.visitBlock(ctx.block())
 
@@ -311,7 +313,7 @@ class WappaVisitor(BaseVisitor):
                 exprs = ctx.expression()
                 blocks = ctx.block()
 
-                scope = Scope(parent=self.scope[-1])
+                scope = Scope(self.module, parent=self.scope[-1])
                 self.scope.append(scope)
 
                 block = self.visitBlock(blocks[0])
@@ -325,7 +327,7 @@ class WappaVisitor(BaseVisitor):
                     elsif_exprs = list(map(self.visitExpression, exprs[1:]))
                     if else_block:
                         for b in blocks[1:-1]:
-                            scope = Scope(parent=self.scope[-1])
+                            scope = Scope(self.module, parent=self.scope[-1])
                             self.scope.append(scope)
 
                             elsif_blocks.append(self.visitBlock(b))
@@ -333,7 +335,7 @@ class WappaVisitor(BaseVisitor):
                             self.scope.pop()
                     else:
                         for b in blocks[1:]:
-                            scope = Scope(parent=self.scope[-1])
+                            scope = Scope(self.module, parent=self.scope[-1])
                             self.scope.append(scope)
 
                             elsif_blocks.append(self.visitBlock(b))
@@ -341,7 +343,7 @@ class WappaVisitor(BaseVisitor):
                             self.scope.pop()
 
                 if else_block:
-                    scope = Scope(parent=self.scope[-1])
+                    scope = Scope(self.module, parent=self.scope[-1])
                     self.scope.append(scope)
 
                     else_block = self.visitBlock(blocks[-1])
@@ -357,7 +359,7 @@ class WappaVisitor(BaseVisitor):
                     else_block)
 
             elif statement_type == "while":
-                scope = Scope(parent=self.scope[-1])
+                scope = Scope(self.module, parent=self.scope[-1])
                 self.scope.append(scope)
 
                 block = self.visitBlock(ctx.block(0))
@@ -368,7 +370,7 @@ class WappaVisitor(BaseVisitor):
                     ctx.start, self.visitExpression(ctx.expression(0)), block)
 
             elif statement_type == "until":
-                scope = Scope(parent=self.scope[-1])
+                scope = Scope(self.module, parent=self.scope[-1])
                 self.scope.append(scope)
 
                 block = self.visitBlock(ctx.block(0))
@@ -379,7 +381,7 @@ class WappaVisitor(BaseVisitor):
                     ctx.start, self.visitExpression(ctx.expression(0)), block)
 
             elif statement_type == "do":
-                scope = Scope(parent=self.scope[-1])
+                scope = Scope(self.module, parent=self.scope[-1])
                 self.scope.append(scope)
 
                 block = self.visitBlock(ctx.block(0))
@@ -506,6 +508,12 @@ class WappaVisitor(BaseVisitor):
                 return Expression(tok, "ERROR")
 
         if ctx.bop is not None:
+            if ctx.bop.text == '.':
+                if ctx.IDENTIFIER():
+                    ID = str(ctx.IDENTIFIER())
+                    return OuterReference(
+                        tok, self.visitExpression(ctx.expression(0)), ID)
+
             exprL = self.visitExpression(ctx.expression(0))
             exprR = self.visitExpression(ctx.expression(1))
             expr_type = exprL.type_of()
@@ -642,7 +650,7 @@ class WappaVisitor(BaseVisitor):
         if ctx.expression():
             return self.visitExpression(ctx.expression())
 
-        ID = ctx.IDENTIFIER()
+        ID = ctx.IDENTIFIER() or ctx.SELF()
         if ID:
             ID = str(ID)
             return Reference(

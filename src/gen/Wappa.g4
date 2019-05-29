@@ -64,7 +64,7 @@ functionDeclaration:
     )? (block | '=' expression ';');
 
 methodDeclaration:
-    functionModifiers 'fun' IDENTIFIER '(' ref = SELF (
+    functionModifiers 'fun' IDENTIFIER '(' 'self' (
         ',' parameterList
     )? ')' ('->' typeExpressionOrUnit)? (
         block

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union
 
+import llvmlite.ir as ir
+
 from ..gen.Wappa import Token
 from ..util import Exception
 
@@ -15,8 +17,9 @@ if TYPE_CHECKING:
 
 
 class Scope:
-    def __init__(self, parent: Scope = None):
+    def __init__(self, module: ir.Module, parent: Scope = None):
         self.owner: Optional[Symbol] = None
+        self.module = module
         self.parent = parent
         self.symbol_table: Dict[str, Symbol] = {}
 

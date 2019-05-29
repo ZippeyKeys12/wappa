@@ -29,8 +29,12 @@ class Field:
 
         return None
 
+    def ir_type_of(self) -> Optional[ir.Value]:
+        try:
+            return self.type_of().ir_type
+        except AttributeError:
+            return None
+
     def compile(self, module: ir.Module, builder: ir.IRBuilder,
                 symbols: SymbolTable) -> ir.Value:
-        if self.object_type is None:
-            self.object_type = self.value.type_of().ID
-        return "{} {};".format(self.object_type, self.ID)
+        return ir.Constant(ir.IntType(32), 3)

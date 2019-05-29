@@ -26,6 +26,10 @@ class Expression:
         raise NotImplementedError(
             "'type_of' not implemented for {}".format(type(self)))
 
+    def ir_type_of(self) -> Optional[ir.Value]:
+        raise NotImplementedError(
+            "'ir_type_of' not implemented for {}".format(type(self)))
+
     def type_check(self):
         raise NotImplementedError(
             "'type_check' not implemented for {}".format(type(self)))
@@ -45,6 +49,9 @@ class Literal(Expression):
 
     def type_of(self) -> WappaType:
         return self.lit_type
+
+    def ir_type_of(self) -> ir.Value:
+        return self.lit_type.ir_type
 
     def type_check(self):
         pass
@@ -78,6 +85,12 @@ class Reference(Expression):
 
         return None
 
+    def ir_type_of(self) -> Optional[ir.Value]:
+        try:
+            return self.type_of().ir_type
+        except AttributeError:
+            return None
+
     def type_check(self):
         pass
 
@@ -97,6 +110,12 @@ class FunctionCallExpression(Expression):
     def type_of(self) -> Optional[WappaType]:
         return self.ref.ret_type
 
+    def ir_type_of(self) -> Optional[ir.Value]:
+        try:
+            return self.type_of().ir_type
+        except AttributeError:
+            return None
+
     def type_check(self):
         pass
 
@@ -115,6 +134,12 @@ class PostfixOPExpression(Expression):
 
     def type_of(self) -> Optional[WappaType]:
         return self.expr.type_of()
+
+    def ir_type_of(self) -> Optional[ir.Value]:
+        try:
+            return self.type_of().ir_type
+        except AttributeError:
+            return None
 
     def compile(self, module: ir.Module, builder: ir.IRBuilder,
                 symbols: SymbolTable) -> ir.Value:
@@ -149,6 +174,12 @@ class PrefixOPExpression(Expression):
             return TypeType(self.expr.type_of())
 
         return self.expr.type_of()
+
+    def ir_type_of(self) -> Optional[ir.Value]:
+        try:
+            return self.type_of().ir_type
+        except AttributeError:
+            return None
 
     def compile(self, module: ir.Module, builder: ir.IRBuilder,
                 symbols: SymbolTable) -> ir.Value:
@@ -197,6 +228,12 @@ class BinaryOPExpression(Expression):
             return IntType
 
         return self.exprL.type_of()
+
+    def ir_type_of(self) -> Optional[ir.Value]:
+        try:
+            return self.type_of().ir_type
+        except AttributeError:
+            return None
 
     def compile(self, module: ir.Module, builder: ir.IRBuilder,
                 symbols: SymbolTable) -> ir.Value:
@@ -390,6 +427,12 @@ class TernaryOPExpression(Expression):
 
     def type_of(self):
         return self.exprC.type_of()
+
+    def ir_type_of(self) -> Optional[ir.Value]:
+        try:
+            return self.type_of().ir_type
+        except AttributeError:
+            return None
 
     def compile(self, module: ir.Module, builder: ir.IRBuilder,
                 symbols: SymbolTable) -> ir.Value:
