@@ -15,7 +15,7 @@ severity_levels = {
 EXCEPTION_LIST: List[Tuple[str, str, str, Token, str]] = []
 
 
-def Exception(severity: str, arg: str, tok: Token):
+def WappaException(severity: str, arg: str, tok: Token):
     if severity not in severity_levels:
         raise ValueError(
             'severity_level must be in: {}'.format(severity_levels))

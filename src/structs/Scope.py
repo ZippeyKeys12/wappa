@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union
 import llvmlite.ir as ir
 
 from ..gen.Wappa import Token
-from ..util import Exception
+from ..util import WappaException
 
 if TYPE_CHECKING:
     from .Field import Field
@@ -25,12 +25,12 @@ class Scope:
 
     def add_symbol(self, tok: Token, ID: str, symbol: Symbol):
         if ID in self.symbol_table.keys():
-            Exception(
+            WappaException(
                 'ERROR', "Conflicting declaration of '{}'".format(ID), tok)
 
         self.symbol_table[ID] = symbol
 
-    def get_symbol(self, tok: Token, ID: str, exception: bool = True
+    def get_symbol(self, tok: Token, ID: str, WappaException: bool = True
                    ) -> Optional[Symbol]:
         try:
             return self.symbol_table[ID]
@@ -38,8 +38,8 @@ class Scope:
             if self.parent is not None:
                 return self.parent.get_symbol(tok, ID)
             else:
-                if exception:
-                    Exception(
+                if WappaException:
+                    WappaException(
                         'ERROR', "Unknown identifier '{}'".format(ID), tok)
                 return None
 

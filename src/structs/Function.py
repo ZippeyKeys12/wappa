@@ -8,6 +8,8 @@ from ..TypeSystem import UnitType
 from .Symbols import SymbolTable
 
 if TYPE_CHECKING:
+    from ..IDGenerator import IDGenerator
+    from ..TypeSystem import TypeSolver
     from .Block import Block
     from .Type import WappaType
 

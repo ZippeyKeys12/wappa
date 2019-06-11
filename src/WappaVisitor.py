@@ -4,6 +4,7 @@ import llvmlite.ir as ir
 
 from .gen.Wappa import Wappa
 from .gen.WappaVisitor import WappaVisitor as BaseVisitor
+from .IDGenerator import IDGenerator
 from .structs.Block import Block
 from .structs.Class import Class
 from .structs.Expression import (BinaryOPExpression, Expression,
@@ -22,8 +23,8 @@ from .structs.Symbols import SymbolTable
 from .structs.Type import WappaType
 from .structs.Variable import Variable
 from .TypeSystem import (BoolType, DoubleType, IntType, NilType, ObjectType,
-                         PrimitiveTypes, StringType, TypeSolver, UnitType)
-from .util import EXCEPTION_LIST, Exception
+                         PrimitiveTypes, StringType, UnitType)
+from .util import EXCEPTION_LIST, WappaException
 
 
 class WappaVisitor(BaseVisitor):
@@ -45,15 +46,15 @@ class WappaVisitor(BaseVisitor):
 
         self.builder = ir.IRBuilder()
 
-        self.tsolver = TypeSolver()
+        self.idgen = IDGenerator()
 
     def visit(self, tree) -> str:
         BaseVisitor.visit(self, tree)
 
-        symbol_table = SymbolTable()
+        symbols = SymbolTable()
         for obj in self.global_scope.symbols(values=True):
             if hasattr(obj, 'compile'):
-                obj.compile(self.module, self.builder, symbol_table)
+                obj.compile(self.module, self.builder, symbols)
 
         for exception in sorted(set(EXCEPTION_LIST), key=lambda x: x[3]):
             print("{}[{}] - {} at line {}{}".format(*exception))
@@ -71,6 +72,7 @@ class WappaVisitor(BaseVisitor):
         else:
             parent, interfaces = ObjectType, []
 
+        self.idgen.append(ID)
         scope = Scope(self.module, parent=self.scope[-1])
 
         self.scope[-1].add_symbol(ctx.start, ID, Class(
@@ -82,6 +84,7 @@ class WappaVisitor(BaseVisitor):
         self.visitClassBlock(ctx.classBlock())
 
         self.scope.pop()
+        self.idgen.pop()
 
     def visitClassModifiers(
             self, ctx: Wappa.ClassModifiersContext) -> Tuple[str, str, str]:
@@ -145,9 +148,8 @@ class WappaVisitor(BaseVisitor):
             parameters = self.visitParameterList(ctx.parameterList())
 
         ret_type = None
-        if ctx.typeExpressionOrUnit():
-            ret_type = self.visitTypeExpressionOrUnit(
-                ctx.typeExpressionOrUnit())
+        if ctx.returnType():
+            ret_type = self.visitReturnType(ctx.returnType())
 
         scope = Scope(self.module, parent=self.scope[-1])
         self.scope.append(scope)
@@ -187,9 +189,8 @@ class WappaVisitor(BaseVisitor):
             parameters = self.visitParameterList(ctx.parameterList())
 
         ret_type = None
-        if ctx.typeExpressionOrUnit():
-            ret_type = self.visitTypeExpressionOrUnit(
-                ctx.typeExpressionOrUnit())
+        if ctx.returnType():
+            ret_type = self.visitReturnType(ctx.returnType())
 
         scope = Scope(self.module, parent=self.scope[-1])
         self.scope.append(scope)
@@ -275,8 +276,8 @@ class WappaVisitor(BaseVisitor):
                 var_act_type = init_type
 
             if init_type is not None:
-                if not init_type.is_a(self.tsolver, var_act_type):
-                    Exception(
+                if not init_type.is_a(var_act_type):
+                    WappaException(
                         "ERROR",
                         "Expression of type {}, does not match type {}".format(
                             init_type.ID, var_act_type.ID), ctx.start)
@@ -405,7 +406,7 @@ class WappaVisitor(BaseVisitor):
             return ExprStatement(
                 ctx.start, self.visitExpression(ctx.expression(0)))
 
-        Exception("FATAL", "Unhandled Expression {}".format(
+        WappaException("FATAL", "Unhandled Expression {}".format(
             ctx.getText()), ctx.start)
         return ctx
 
@@ -417,9 +418,6 @@ class WappaVisitor(BaseVisitor):
         if ctx.primary():
             return self.visitPrimary(ctx.primary())
 
-        if ctx.functionCall():
-            return self.visitFunctionCall(ctx.functionCall())
-
         tok = ctx.start
 
         if ctx.postfix is not None:
@@ -430,12 +428,12 @@ class WappaVisitor(BaseVisitor):
                 return Expression(tok, "ERROR")
 
             if isinstance(expr, Reference) and not expr.ref:
-                Exception(
+                WappaException(
                     'ERROR', "Unknown identifier '{}'".format(expr.ID), tok)
                 return Expression(tok, "ERROR")
 
             if expr_type is None:
-                Exception("ERROR", "Expression has no type", tok)
+                WappaException("ERROR", "Expression has no type", tok)
 
             else:
                 postfix = ctx.postfix.text
@@ -456,7 +454,7 @@ class WappaVisitor(BaseVisitor):
                 if isinstance(ref, Function):
                     return FunctionCallExpression(tok, ref, [], [])
 
-                Exception(
+                WappaException(
                     "ERROR", "{} is not a function".format(func_name), tok)
 
                 return Expression(tok, "ERROR")
@@ -469,12 +467,12 @@ class WappaVisitor(BaseVisitor):
                 return Expression(tok, "ERROR")
 
             if isinstance(expr, Reference) and not expr.ref:
-                Exception(
+                WappaException(
                     'ERROR', "Unknown identifier '{}'".format(expr.ID), tok)
                 return Expression(tok, "ERROR")
 
             if expr_type is None:
-                Exception("ERROR", "Expression has no type", tok)
+                WappaException("ERROR", "Expression has no type", tok)
 
                 return Expression(tok, "ERROR")
 
@@ -502,18 +500,12 @@ class WappaVisitor(BaseVisitor):
                 if isinstance(ref, Function):
                     return FunctionCallExpression(tok, ref, [], [])
 
-                Exception(
+                WappaException(
                     "ERROR", "{} is not a function".format(func_name), tok)
 
                 return Expression(tok, "ERROR")
 
         if ctx.bop is not None:
-            if ctx.bop.text == '.':
-                if ctx.IDENTIFIER():
-                    ID = str(ctx.IDENTIFIER())
-                    return OuterReference(
-                        tok, self.visitExpression(ctx.expression(0)), ID)
-
             exprL = self.visitExpression(ctx.expression(0))
             exprR = self.visitExpression(ctx.expression(1))
             expr_type = exprL.type_of()
@@ -522,12 +514,12 @@ class WappaVisitor(BaseVisitor):
                 return Expression(tok, "ERROR")
 
             if isinstance(exprL, Reference) and not exprL.ref:
-                Exception(
+                WappaException(
                     'ERROR', "Unknown identifier '{}'".format(exprL.ID), tok)
                 return Expression(tok, "ERROR")
 
             if expr_type is None:
-                Exception("ERROR", "Expression has no type", tok)
+                WappaException("ERROR", "Expression has no type", tok)
 
                 return Expression(tok, "ERROR")
 
@@ -545,19 +537,19 @@ class WappaVisitor(BaseVisitor):
                     '**': 'pow',
                     '/': 'div',
                     '//': 'ddiv',
-                    '%': 'mod',
-                    '<': 'lt',
-                    '<<': 'lshift',
-                    '>': 'gt',
-                    '>>': 'rshift',
-                    '>>>': 'urshift',
+                    '%': 'rem',
+                    '%%': 'mod',
+                    '<<': 'shl',
+                    '>>': 'shr',
+                    '>>>': 'ushr',
                     '&': 'and',
                     '|': 'or',
                     '^': 'xor',
+                    '<': 'lt',
                     '<=': 'le',
+                    '>': 'gt',
                     '>=': 'ge',
                     '==': 'eq',
-                    '~=': 'aeq',
                     '!=': 'ne'
                 }[bop])
 
@@ -572,7 +564,7 @@ class WappaVisitor(BaseVisitor):
                 if isinstance(ref, Function):
                     return FunctionCallExpression(tok, ref, [exprR], [])
 
-                Exception(
+                WappaException(
                     "ERROR", "{} is not a function".format(func_name), tok)
 
                 return Expression(tok, "ERROR")
@@ -587,12 +579,12 @@ class WappaVisitor(BaseVisitor):
                 return Expression(tok, "ERROR")
 
             if isinstance(exprC, Reference) and not exprC.ref:
-                Exception(
+                WappaException(
                     'ERROR', "Unknown identifier '{}'".format(exprC.ID), tok)
                 return Expression(tok, "ERROR")
 
             if expr_type is None:
-                Exception("ERROR", "Expression has no type", tok)
+                WappaException("ERROR", "Expression has no type", tok)
 
                 return Expression(tok, "ERROR")
 
@@ -630,36 +622,52 @@ class WappaVisitor(BaseVisitor):
                         return BinaryOPExpression(tok, exprL, '&&', exprR)
 
                     if refL is not None and not isinstance(refL, Function):
-                        Exception(
+                        WappaException(
                             "ERROR", "{} is not a function".format(func_nameL),
                             tok)
 
                     if refR is not None and not isinstance(refR, Function):
-                        Exception(
+                        WappaException(
                             "ERROR", "{} is not a function".format(func_nameR),
                             tok)
 
                     return Expression(tok, "ERROR")
 
-        Exception("FATAL", "Unhandled Expression: {}".format(
+        WappaException("FATAL", "Unhandled Expression: {}".format(
             ctx.getText()), tok)
 
         return Expression(tok, "FATAL")
 
-    def visitPrimary(self, ctx: Wappa.PrimaryContext):
-        if ctx.expression():
-            return self.visitExpression(ctx.expression())
+    def visitReferenceExpression(self, ctx: Wappa.ReferenceExpressionContext):
+        tok = ctx.start
 
         ID = ctx.IDENTIFIER() or ctx.SELF()
         if ID:
+            # TODO: Actually fix this, need to handle references
+            if isinstance(ID, list):
+                ID = ID[0]
+
             ID = str(ID)
-            return Reference(
-                ctx.start, self.scope[-1].get_symbol(ctx.start, ID), ID)
 
-        if ctx.literal():
-            return self.visitLiteral(ctx.literal())
+            return Reference(tok, self.scope[-1].get_symbol(tok, ID), ID)
 
-        return self.visitChildren(ctx)
+        it = ctx.functionCall()
+        if it:
+            # TODO: Also actually fix
+            return self.visitFunctionCall(it[0])
+
+    def visitPrimary(self, ctx: Wappa.PrimaryContext):
+        it = ctx.expression()
+        if it:
+            return self.visitExpression(it)
+
+        it = ctx.literal()
+        if it:
+            return self.visitLiteral(it)
+
+        it = ctx.referenceExpression()
+        if it:
+            return self.visitReferenceExpression(it)
 
     def visitLiteral(self, ctx: Wappa.LiteralContext) -> Literal:
         text = ctx.getText()
@@ -679,8 +687,8 @@ class WappaVisitor(BaseVisitor):
         if ctx.NIL_LITERAL():
             return Literal(ctx.start, text, NilType)
 
-        Exception("FATAL", "Unhandled Literal: {}".format(ctx.getText()),
-                  ctx.start)
+        WappaException("FATAL", "Unhandled Literal: {}".format(ctx.getText()),
+                       ctx.start)
 
         return Literal(ctx.start, text, NilType)
 
@@ -699,12 +707,7 @@ class WappaVisitor(BaseVisitor):
             return self.visitTypeName(ctx.typeName())
 
     def visitTypeName(self, ctx: Wappa.TypeNameContext) -> WappaType:
-        ret = self.scope[-1].get_symbol(ctx.start, ctx.getText())
-
-        if not ctx.unit and ret == UnitType:
-            Exception("ERROR", "'Unit' is not an accepted type", ctx.start)
-
-        return ret
+        return self.scope[-1].get_symbol(ctx.start, ctx.getText())
 
     def __safe_text(self, ctx, func: str = "getText", default="") -> str:
         if ctx is None:

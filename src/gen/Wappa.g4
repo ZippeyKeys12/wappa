@@ -17,14 +17,14 @@ classDeclaration:
 
 classModifiers: visibilityModifier? inheritanceModifier?;
 
-classParentDeclaration: 'extends' typeName[False];
+classParentDeclaration: 'extends' typeName;
 
 classInterfaceDeclaration: 'implements' interfaceSpecifierList;
 
 interfaceSpecifierList:
     interfaceSpecifier (',' interfaceSpecifier)*;
 
-interfaceSpecifier: typeExpression (BY functionCall)?;
+interfaceSpecifier: intersectionType (BY functionCall)?;
 
 innerConstructorCallList:
     innerConstructorCall (',' innerConstructorCall)*;
@@ -45,9 +45,7 @@ memberDeclaration: fieldDeclaration | methodDeclaration;
 
 fieldDeclaration:
     visibilityModifier? staticTypedVar variableDeclaratorId (
-        ':' typeName[False] (
-            '=' ( literal | innerConstructorCall)
-        )?
+        ':' typeName ('=' ( literal | innerConstructorCall))?
         | '=' ( literal | innerConstructorCall)
     ) ('{' (IDENTIFIER block)+ '}')? ';';
 
@@ -60,16 +58,15 @@ functionModifiers:
 
 functionDeclaration:
     functionModifiers 'fun' IDENTIFIER '(' parameterList? ')' (
-        '->' typeExpressionOrUnit
+        '=>' returnType
     )? (block | '=' expression ';');
 
 methodDeclaration:
     functionModifiers 'fun' IDENTIFIER '(' 'self' (
         ',' parameterList
-    )? ')' ('->' typeExpressionOrUnit)? (
-        block
-        | '=' expression ';'
-    );
+    )? ')' ('=>' returnType)? (block | '=' expression ';');
+
+returnType: 'Unit' | trueType;
 
 parameterList:
     IDENTIFIER ':' typeExpression (
@@ -93,7 +90,7 @@ variableDeclarations:
 
 variableDeclaration:
     staticTypedVar variableDeclaratorId (
-        ':' typeName[False] ('=' variableInitializer)?
+        ':' typeName ('=' variableInitializer)?
         | ('=' variableInitializer)
     );
 
@@ -131,30 +128,21 @@ expressionList: expression (',' expression)*;
 
 expression:
     primary
-    | expression bop = '.' (
-        IDENTIFIER
-        | functionCall
-        // | 'self'
-        // | NEW nonWildcardTypeArguments? innerCreator
-        // | 'super' superSuffix
-        // | explicitGenericInvocation
-    )
-    | functionCall
     // | classDeclaration
     // | typeName arguments
-    | expression 'as' typeName[False]
+    | expression 'as' typeName
     | expression postfix = ('++' | '--')
     | prefix = ('+' | '-' | '++' | '--') expression
     | prefix = ('~' | '!') expression
     | prefix = ('alignof' | 'sizeof' | 'typeof') expression
     | expression bop = '**' expression
-    | expression bop = ('*' | '//' | '/' | '%') expression
+    | expression bop = ('*' | '/' | '//' | '%' | '%%') expression
     | expression bop = ('+' | '-') expression
     | expression bop = ('<<' | '>>' | '>>>') expression
     | expression top = '<' expression '<' expression
     | expression top = '>' expression '>' expression
-    | expression bop = ('<=' | '>=' | '>' | '<' | '<=>') expression
-    | expression bop = 'is' typeName[False]
+    | expression bop = ('<=' | '>=' | '>' | '<') expression
+    | expression bop = 'is' typeName
     | expression bop = ('==' | '===' | '!=' | '!==') expression
     | expression bop = '&' expression
     | expression bop = '^' expression
@@ -180,23 +168,22 @@ expression:
         | '%='
     ) expression;
 
-primary:
-    '(' expression ')'
-    | 'self'
-    | 'super'
-    | literal
-    | IDENTIFIER;
+// referenceExpression: (IDENTIFIER | 'self' | 'super') '.' (
+//         IDENTIFIER
+//         | functionCall
+//         | referenceExpression
+//     );
 
-superSuffix: arguments | '.' IDENTIFIER arguments?;
+referenceExpression: (
+        IDENTIFIER
+        | 'self'
+        | 'super'
+        | functionCall
+    ) ('.' (IDENTIFIER | functionCall))*;
+
+primary: '(' expression ')' | literal | referenceExpression;
 
 arguments: '(' expressionList? ')';
-
-//
-// Directive
-//
-
-// ifDirective:      (D_IF | D_IFDEF) expression ';' .*? D_ENDIF;
-// includeDirective: D_INCLUDE STRING_LITERAL;
 
 //
 // General
@@ -207,7 +194,7 @@ literal:
     | floatLiteral
     | stringLiteral
     | BOOL_LITERAL
-    | NIL_LITERAL;
+    | 'Nil';
 
 integerLiteral:
     DECIMAL_LITERAL
@@ -217,33 +204,58 @@ integerLiteral:
 
 floatLiteral: FLOAT_LITERAL | HEX_FLOAT_LITERAL;
 
-stringLiteral:  STRING_LITERAL | INTERP_STRING_LITERAL;
-staticTypedVar: 'var' | 'val';
+stringLiteral: STRING_LITERAL | INTERP_STRING_LITERAL;
 
-typeExpressionOrUnit:
-    typeName[True]
-    | typeExpression bop = '&' typeExpression
-    | typeExpression bop = '|' typeExpression;
+//
+// Types
+//
+
+trueType: '(' trueType ')' | typeExpression | functionType;
+
+//
+// Function Types
+//
+
+functionType: functionTypePart ('->' functionTypePart)+;
+
+functionTypePart: typeExpression | innerFunctionType;
+
+innerFunctionType:
+    '(' functionTypePart ('->' functionTypePart)+ ')';
+
+//
+// Type Expressions
+//
 
 typeExpression:
-    typeName[False]
+    typeName
+    | '(' typeExpression ')'
     | typeExpression bop = '&' typeExpression
     | typeExpression bop = '|' typeExpression;
 
 intersectionType:
-    typeName[False]
+    typeName
     | intersectionType '&' intersectionType;
 
-unionType: typeName[False] | unionType '|' unionType;
+unionType: typeName | unionType '|' unionType;
 
-typeName[unit: bool]: IDENTIFIER typeArguments? typeConstraints?;
+//
+// Type Name
+//
 
-typeNameList:
-    typeName[False] (',' typeName[False])*;
+typeName: IDENTIFIER typeArguments? typeConstraints?;
 
-typeArguments: '<' typeNameList '>';
+trueTypeList: trueType (',' trueType)*;
+
+typeArguments: '<' trueTypeList '>';
 
 typeConstraints: '[' /* TODO */ ']';
+
+//
+// Modifiers
+//
+
+staticTypedVar: 'var' | 'val';
 
 visibilityModifier:
     'private'
@@ -252,5 +264,3 @@ visibilityModifier:
     | 'public';
 
 inheritanceModifier: 'abstract' | 'final' | 'open';
-
-identifierList: IDENTIFIER (',' IDENTIFIER)*;

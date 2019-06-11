@@ -6,7 +6,7 @@ import llvmlite.ir as ir
 
 from ..gen.Wappa import Token
 from ..TypeSystem import BoolType, DoubleType, IntType, TypeType
-from ..util import Exception
+from ..util import WappaException
 from .Field import Field
 from .Type import WappaType
 from .Variable import Variable
@@ -26,9 +26,10 @@ class Expression:
         raise NotImplementedError(
             "'type_of' not implemented for {}".format(type(self)))
 
-    def ir_type_of(self) -> Optional[ir.Value]:
+    @property
+    def ir_type(self) -> Optional[ir.Value]:
         raise NotImplementedError(
-            "'ir_type_of' not implemented for {}".format(type(self)))
+            "'ir_type' not implemented for {}".format(type(self)))
 
     def type_check(self):
         raise NotImplementedError(
@@ -50,7 +51,8 @@ class Literal(Expression):
     def type_of(self) -> WappaType:
         return self.lit_type
 
-    def ir_type_of(self) -> ir.Value:
+    @property
+    def ir_type(self) -> ir.Value:
         return self.lit_type.ir_type
 
     def type_check(self):
@@ -85,7 +87,8 @@ class Reference(Expression):
 
         return None
 
-    def ir_type_of(self) -> Optional[ir.Value]:
+    @property
+    def ir_type(self) -> Optional[ir.Value]:
         try:
             return self.type_of().ir_type
         except AttributeError:
@@ -110,7 +113,8 @@ class FunctionCallExpression(Expression):
     def type_of(self) -> Optional[WappaType]:
         return self.ref.ret_type
 
-    def ir_type_of(self) -> Optional[ir.Value]:
+    @property
+    def ir_type(self) -> Optional[ir.Value]:
         try:
             return self.type_of().ir_type
         except AttributeError:
@@ -135,7 +139,8 @@ class PostfixOPExpression(Expression):
     def type_of(self) -> Optional[WappaType]:
         return self.expr.type_of()
 
-    def ir_type_of(self) -> Optional[ir.Value]:
+    @property
+    def ir_type(self) -> Optional[ir.Value]:
         try:
             return self.type_of().ir_type
         except AttributeError:
@@ -153,7 +158,7 @@ class PostfixOPExpression(Expression):
             if self.expr.type_of() == DoubleType:
                 pass
 
-        Exception(
+        WappaException(
             "FATAL", "Unhandled Postfix Operator {}".format(uop), self.tok)
         return uop
 
@@ -175,7 +180,8 @@ class PrefixOPExpression(Expression):
 
         return self.expr.type_of()
 
-    def ir_type_of(self) -> Optional[ir.Value]:
+    @property
+    def ir_type(self) -> Optional[ir.Value]:
         try:
             return self.type_of().ir_type
         except AttributeError:
@@ -198,7 +204,7 @@ class PrefixOPExpression(Expression):
         # if uop == 'typeof':
         #     return "({}.getClassName())".format(expr)
 
-        Exception(
+        WappaException(
             "FATAL", "Unhandled Prefix Operator {}".format(uop), self.tok)
 
         return uop
@@ -229,7 +235,8 @@ class BinaryOPExpression(Expression):
 
         return self.exprL.type_of()
 
-    def ir_type_of(self) -> Optional[ir.Value]:
+    @property
+    def ir_type(self) -> Optional[ir.Value]:
         try:
             return self.type_of().ir_type
         except AttributeError:
@@ -241,6 +248,8 @@ class BinaryOPExpression(Expression):
 
         exprL = self.exprL.compile(module, builder, symbols)
         exprL_type = self.exprL.type_of()
+
+        print(bop, self.exprL)
 
         exprR = self.exprR.compile(module, builder, symbols)
         exprR_type = self.exprR.type_of()
@@ -411,7 +420,7 @@ class BinaryOPExpression(Expression):
 
         #     return "({0} = {0} / double({1}))".format(*data)
 
-        Exception(
+        WappaException(
             "FATAL", "Unhandled Binary Operator {}".format(bop), self.tok)
         return bop
 
@@ -428,7 +437,8 @@ class TernaryOPExpression(Expression):
     def type_of(self):
         return self.exprC.type_of()
 
-    def ir_type_of(self) -> Optional[ir.Value]:
+    @property
+    def ir_type(self) -> Optional[ir.Value]:
         try:
             return self.type_of().ir_type
         except AttributeError:

@@ -43,7 +43,6 @@ OBJECT:   'object';
 OPEN:     'open';
 OVERRIDE: 'override';
 // PACKAGE:      'package';
-PLAY:      'play';
 PRIVATE:   'private';
 PROTECTED: 'protected';
 PROTOTYPE: 'prototype';
@@ -64,13 +63,13 @@ SUPER: 'super';
 // TRANSIENT:    'transient';
 // TRY:          'try';
 TYPEOF: 'typeof';
-UI:     'ui';
 UNTIL:  'until';
 VAL:    'val';
 VAR:    'var';
 // VOLATILE:     'volatile';
 WHILE: 'while';
 WITH:  'with';
+// YIELD: 'yield';
 
 // Directive
 
@@ -100,7 +99,11 @@ BOOL_LITERAL: 'True' | 'False';
 STRING_LITERAL:        '\'' StringInner '\'';
 INTERP_STRING_LITERAL: '"' StringInner '"';
 
-NIL_LITERAL: 'Nil';
+NIL: 'Nil';
+
+UNIT: 'Unit';
+
+// UNIT_LITERAL: '()';
 
 IDENTIFIER: Letter LetterOrDigit*;
 
@@ -122,7 +125,8 @@ DOT:    '.';
 // Operators
 //
 
-ARROW:          '->';
+DASH_ARROW:     '->';
+EQ_ARROW:       '=>';
 PIPELINE:       '|>';
 ASSIGN:         '=';
 GT:             '>';
@@ -140,7 +144,6 @@ PHYS_EQ:        '===';
 APPROX_EQ:      '~=';
 LE:             '<=';
 GE:             '>=';
-SIGN_DIFF:      '<=>';
 NOTEQUAL:       '!=';
 PHYS_NEQ:       '!==';
 AND:            '&&';
@@ -156,7 +159,8 @@ INT_DIV:        '//';
 BITAND:         '&';
 BITOR:          '|';
 CARET:          '^';
-MOD:            '%';
+REM:            '%';
+MOD:            '%%';
 ADD_ASSIGN:     '+=';
 SUB_ASSIGN:     '-=';
 POW_ASSIGN:     '**=';

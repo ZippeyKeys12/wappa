@@ -8,118 +8,6 @@ import llvmlite.ir as ir
 from .structs.Type import WappaType
 from .util import methoddispatch
 
-AnyType = WappaType("Any")
-NilType = WappaType("Nil")
-
-
-NumberType = WappaType("Number", supertypes=[AnyType])
-
-DoubleType = WappaType("Double", ir.DoubleType(), supertypes=[NumberType])
-FloatType = WappaType("Float", ir.FloatType(), supertypes=[DoubleType])
-
-LongType = WappaType("Long", ir.IntType(64), supertypes=[FloatType])
-IntType = WappaType("Int", ir.IntType(32), supertypes=[LongType])
-ShortType = WappaType("Short", ir.IntType(16), supertypes=[IntType])
-ByteType = WappaType("Byte", ir.IntType(8), supertypes=[ShortType])
-
-
-StringType = WappaType("String", supertypes=[AnyType])
-
-
-BoolType = WappaType("Boolean", ir.IntType(1), supertypes=[ByteType])
-
-
-ObjectType = WappaType("Object", supertypes=[AnyType])
-
-
-UnitType = WappaType("Unit", ir.VoidType(), supertypes=[AnyType])
-
-
-NothingType = WappaType("Nothing")
-
-PrimitiveTypes = [IntType, DoubleType, StringType, BoolType, NilType]
-
-
-class TypeType(WappaType):
-    def __init__(self, ref: WappaType):
-        self.ref = ref
-
-        WappaType.__init__(self, ref.ID)
-
-    def __eq__(self, value) -> bool:
-        return value is self.ref
-
-    def __hash__(self):
-        return super().__hash__() ^ "typetype".__hash__()
-
-
-class IntersectionType(WappaType):
-    def __init__(self, ID: str, wtypes: List[WappaType]):
-        WappaType.__init__(self, ID, supertypes=wtypes)
-
-    def __eq__(self, value) -> bool:
-        if self is value:
-            return True
-
-        if not isinstance(value, IntersectionType):
-            return False
-
-        if len(value.supertypes) != len(self.supertypes):
-            return False
-
-        for stype in self.supertypes:
-            if stype not in value.supertypes:
-                return False
-
-        return True
-
-    def __hash__(self):
-        ret = super.__hash__()
-
-        for stype in self.supertypes:
-            ret ^= stype.__hash__()
-
-        return ret ^ "intersection".__hash__()
-
-
-class UnionType(WappaType):
-    def __init__(self, ID: str, wtypes: List[WappaType]):
-        WappaType.__init__(self, ID)
-
-        self.options = wtypes
-
-    def is_a(self, tsolver: TypeSolver, other: WappaType) -> bool:
-        nca = tsolver.nca(self, other)
-
-        if nca is None:
-            return False
-
-        return nca.is_a(other)
-
-    def __eq__(self, value):
-        if self is value:
-            return True
-
-        if not isinstance(value, IntersectionType):
-            return False
-
-        if len(value.supertypes) != len(self.supertypes):
-            return False
-
-        for stype in self.supertypes:
-            if stype not in value.supertypes:
-                return False
-
-        return True
-
-    def __hash__(self):
-        ret = super.__hash__()
-
-        for stype in self.options:
-            ret ^= stype.__hash__()
-
-        return ret ^ "intersection".__hash__()
-
 
 class TypeSolver:
     @lru_cache()
@@ -137,7 +25,7 @@ class TypeSolver:
             for sstype in self.linearize_hierarchy(stype):
                 if sstype not in supertypes:
                     for index, ssstype in enumerate(supertypes):
-                        if sstype.is_a(self, ssstype):
+                        if sstype.is_a(ssstype):
                             supertypes.insert(index, stype)
                             break
                     else:
@@ -157,7 +45,7 @@ class TypeSolver:
 
         for wtype in wtypes[1:]:
             for r in ret:
-                if not wtype.is_a(self, r):
+                if not wtype.is_a(r):
                     ret.remove(r)
 
         return ret
@@ -202,17 +90,17 @@ class TypeSolver:
 
         ret = []
 
-        if wtype_1.is_a(self, wtype_2):
+        if wtype_1.is_a(wtype_2):
             ret.append(wtype_2)
 
-        elif wtype_2.is_a(self, wtype_1):
+        elif wtype_2.is_a(wtype_1):
             ret.append(wtype_1)
 
         else:
             genealogy = self.linearize_hierarchy(wtype_1)
             for stype in self.linearize_hierarchy(wtype_2):
                 if (stype in genealogy and
-                        (len(ret) == 0 or not ret[-1].is_a(self, stype))):
+                        (len(ret) == 0 or not ret[-1].is_a(stype))):
                     ret.append(stype)
 
         return ret
@@ -251,11 +139,11 @@ class TypeSolver:
 
         for item in wtypes[1:]:
             for index, it in enumerate(ret):
-                if item.is_a(self, it):
+                if item.is_a(it):
                     ret.remove(it)
                     ret.insert(index, item)
 
-                elif it.is_a(self, item):
+                elif it.is_a(item):
                     continue
 
                 else:
@@ -273,3 +161,90 @@ class TypeSolver:
                 ret.append(item)
 
         return ret
+
+
+if WappaType.tsolver is None:
+    WappaType.tsolver = TypeSolver()
+
+AnyType = WappaType("Any")
+NilType = WappaType("Nil")
+
+
+NumberType = WappaType("Number", supertypes=[AnyType])
+
+DoubleType = WappaType("Double", ir.DoubleType(), supertypes=[NumberType])
+FloatType = WappaType("Float", ir.FloatType(), supertypes=[DoubleType])
+
+LongType = WappaType("Long", ir.IntType(64), supertypes=[FloatType])
+IntType = WappaType("Int", ir.IntType(32), supertypes=[LongType])
+ShortType = WappaType("Short", ir.IntType(16), supertypes=[IntType])
+ByteType = WappaType("Byte", ir.IntType(8), supertypes=[ShortType])
+
+
+StringType = WappaType("String", supertypes=[AnyType])
+
+
+BoolType = WappaType("Boolean", ir.IntType(1), supertypes=[ByteType])
+
+
+ObjectType = WappaType("Object", supertypes=[AnyType])
+
+
+UnitType = WappaType("Unit", ir.VoidType(), supertypes=[AnyType])
+
+
+NothingType = WappaType("Nothing")
+
+PrimitiveTypes = [IntType, DoubleType, StringType, BoolType, NilType]
+
+
+class TypeType(WappaType):
+    def __init__(self, ref: WappaType):
+        self.ref = ref
+
+        WappaType.__init__(self, ref.ID)
+
+    def is_a(self, other: WappaType) -> bool:
+        pass
+
+    def __hash__(self):
+        return super().__hash__() ^ "typetype".__hash__()
+
+
+class IntersectionType(WappaType):
+    def __init__(self, ID: str = '', wtypes: List[WappaType] = []):
+        WappaType.__init__(self, ID, supertypes=wtypes)
+
+    def __hash__(self):
+        ret = super.__hash__()
+
+        for stype in self.supertypes:
+            ret ^= stype.__hash__()
+
+        return ret ^ "intersection".__hash__()
+
+
+class UnionType(WappaType):
+    def __init__(self, ID: str = '', wtypes: List[WappaType] = []):
+        if ID == '':
+            ID = WappaType.idgen.generate_id()
+
+        WappaType.__init__(self, ID)
+
+        self.options = wtypes
+
+    def is_a(self, other: WappaType) -> bool:
+        nca = WappaType.tsolver.ncas((self, other))
+
+        if nca is None:
+            return False
+
+        return nca.is_a(other)
+
+    def __hash__(self):
+        ret = super.__hash__()
+
+        for stype in self.options:
+            ret ^= stype.__hash__()
+
+        return ret ^ "intersection".__hash__()

@@ -11,8 +11,8 @@ def get_func(ee, name: str, *types):
 
 
 def main():
-    input = FileStream("test.txt")
-    lexer = WappaLexer(input)
+    text = FileStream("test.txt")
+    lexer = WappaLexer(text)
     tokens = CommonTokenStream(lexer)
     parser = Wappa(tokens)
     parser.buildParseTrees = True

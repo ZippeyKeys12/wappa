@@ -6,7 +6,6 @@ import llvmlite.ir as ir
 
 from ..gen.Wappa import Token
 from .Field import Field
-
 from .Symbols import SymbolTable
 from .Type import WappaType
 
@@ -31,8 +30,6 @@ class Class(WappaType):
         self.parent = parent
         self.modifiers = modifiers
 
-        self._ir_type = None
-
     def get_member(self, tok: Token, ID: str) -> Symbol:
         ret = self.scope.get_symbol(tok, ID, not self.parent)
 
@@ -48,8 +45,14 @@ class Class(WappaType):
 
         self._ir_type = self.scope.module.context.get_identified_type(self.ID)
 
-        self._ir_type.set_body(*[f.ir_type_of() for f in self.scope.symbols(
-            values=True) if isinstance(f, Field)])
+        field_types = []
+        self.field_names = []
+        for f in self.scope.symbols(values=True):
+            if isinstance(f, Field):
+                self.field_names.append(f.ID)
+                field_types.append(f.ir_type)
+
+        self._ir_type.set_body(*field_types)
 
         return self._ir_type
 
@@ -76,13 +79,12 @@ class Class(WappaType):
             elif isinstance(s, Function):
                 methods.append(s)
 
+        symbols.add_symbol(self.ID, self.ir_type, self.field_names)
         symbols = SymbolTable(parent=symbols)
 
         for f in fields:
             symbols.add_symbol(f.ID, f.compile(
                 module, builder, symbols))
-
-        print(symbols.symbol_table)
 
         for m in methods:
             m.compile(module, builder, symbols)
