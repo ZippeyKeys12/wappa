@@ -1,10 +1,10 @@
-from typing import Any, List, Optional, Tuple
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any, List, Optional, Tuple
 
 import llvmlite.ir as ir
 
-from .gen.Wappa import Wappa
 from .gen.WappaVisitor import WappaVisitor as BaseVisitor
-from .IDGenerator import IDGenerator
 from .structs.Block import Block
 from .structs.Class import Class
 from .structs.Expression import (BinaryOPExpression, Expression,
@@ -26,6 +26,10 @@ from .TypeSystem import (BoolType, DoubleType, IntType, NilType, ObjectType,
                          PrimitiveTypes, StringType, UnitType)
 from .util import EXCEPTION_LIST, WappaException
 
+if TYPE_CHECKING:
+    from .gen.Wappa import Token, Wappa
+    from .structs.Scope import Symbol
+
 
 class WappaVisitor(BaseVisitor):
     def __init__(self):
@@ -46,7 +50,7 @@ class WappaVisitor(BaseVisitor):
 
         self.builder = ir.IRBuilder()
 
-        self.idgen = IDGenerator()
+        self.idgen = WappaType.idgen
 
     def visit(self, tree) -> str:
         BaseVisitor.visit(self, tree)
@@ -230,7 +234,10 @@ class WappaVisitor(BaseVisitor):
 
         return parameters
 
-    def visitFunctionCall(self, ctx: Wappa.FunctionCallContext) -> Expression:
+    def visitFunctionCall(
+        self, ctx: Wappa.FunctionCallContext, parent: Symbol = None
+    ) -> Expression:
+        tok = ctx.start
         ID = str(ctx.IDENTIFIER())
 
         args: List[Expression] = []
@@ -241,9 +248,12 @@ class WappaVisitor(BaseVisitor):
         if ctx.functionKwarguments():
             kwargs = self.visitFunctionKwarguments(ctx.functionKwarguments())
 
-        ref = self.scope[-1].get_symbol(ctx.start, ID)
+        if parent:
+            ref = parent.get_symbol(tok, ID)
+        else:
+            ref = self.__get_symbol(tok, ID)
 
-        return FunctionCallExpression(ctx.start, ref, args, kwargs)
+        return FunctionCallExpression(tok, ref, args, kwargs)
 
     def visitFunctionKwarguments(self, ctx: Wappa.FunctionKwargumentsContext
                                  ) -> List[Tuple[str, Expression]]:
@@ -446,7 +456,7 @@ class WappaVisitor(BaseVisitor):
                     '--': 'postdec'
                 }[postfix])
 
-                ref = expr_type.get_member(tok, func_name)
+                ref = expr_type.get_symbol(tok, func_name)
 
                 if ref is None:
                     return Expression(tok, "ERROR")
@@ -492,7 +502,7 @@ class WappaVisitor(BaseVisitor):
                     '--': 'predec'
                 }[prefix])
 
-                ref = expr_type.get_member(tok, func_name)
+                ref = expr_type.get_symbol(tok, func_name)
 
                 if ref is None:
                     return Expression(tok, "ERROR")
@@ -526,7 +536,7 @@ class WappaVisitor(BaseVisitor):
             else:
                 bop = ctx.bop.text
 
-                if (bop in ['&&', '||', '===', '!==', 'is', ]
+                if (bop in ['&&', '||', '===', '!==', 'is']
                         or expr_type in PrimitiveTypes):
                     return BinaryOPExpression(tok, exprL, bop, exprR)
 
@@ -556,7 +566,7 @@ class WappaVisitor(BaseVisitor):
                 # TODO: Infer comparison operators
                 # TODO: Implement assignment operators
                 # a+=b -> a=a.__add__(b)
-                ref = expr_type.get_member(tok, func_name)
+                ref = expr_type.get_symbol(tok, func_name)
 
                 if ref is None:
                     return Expression(tok, "ERROR")
@@ -609,8 +619,8 @@ class WappaVisitor(BaseVisitor):
                         {'lt': 'gt', 'gt': 'lt'}[top])
                     func_nameR = self.__magic_method(top)
 
-                    refL = expr_type.get_member(tok, func_nameL)
-                    refR = expr_type.get_member(tok, func_nameR)
+                    refL = expr_type.get_symbol(tok, func_nameL)
+                    refR = expr_type.get_symbol(tok, func_nameR)
 
                     if refL or refR is None:
                         return Expression(tok, "ERROR")
@@ -638,23 +648,39 @@ class WappaVisitor(BaseVisitor):
 
         return Expression(tok, "FATAL")
 
-    def visitReferenceExpression(self, ctx: Wappa.ReferenceExpressionContext):
+    def visitReferenceExpression(
+            self, ctx: Wappa.ReferenceExpressionContext) -> Reference:
+
+        it = ctx.referencePrimary()
+        if it:
+            return self.visitReferencePrimary(it)
+
         tok = ctx.start
+        parent = self.visitReferenceExpression(ctx.referenceExpression())
 
-        ID = ctx.IDENTIFIER() or ctx.SELF()
+        ID = ctx.IDENTIFIER()
         if ID:
-            # TODO: Actually fix this, need to handle references
-            if isinstance(ID, list):
-                ID = ID[0]
-
             ID = str(ID)
-
-            return Reference(tok, self.scope[-1].get_symbol(tok, ID), ID)
+            return Reference(
+                tok, parent.ref.get_symbol(tok, ID), ID, parent=parent)
 
         it = ctx.functionCall()
         if it:
-            # TODO: Also actually fix
-            return self.visitFunctionCall(it[0])
+            return self.visitFunctionCall(it, parent=parent.ref)
+
+    def visitReferencePrimary(
+            self, ctx: Wappa.ReferencePrimaryContext) -> Reference:
+        tok = ctx.start
+
+        ID = ctx.IDENTIFIER() or ctx.SELF() or ctx.SUPER()
+        if ID:
+            ID = str(ID)
+            return Reference(tok, self.__get_symbol(tok, ID), ID)
+
+        else:
+            it = ctx.functionCall()
+            ID = str(it.IDENTIFIER())
+            return self.visitFunctionCall(it)
 
     def visitPrimary(self, ctx: Wappa.PrimaryContext):
         it = ctx.expression()
@@ -707,7 +733,10 @@ class WappaVisitor(BaseVisitor):
             return self.visitTypeName(ctx.typeName())
 
     def visitTypeName(self, ctx: Wappa.TypeNameContext) -> WappaType:
-        return self.scope[-1].get_symbol(ctx.start, ctx.getText())
+        return self.__get_symbol(ctx.start, ctx.getText())
+
+    def __get_symbol(self, tok: Token, ID: str) -> Optional[WappaType]:
+        return self.scope[-1].get_symbol(tok, ID)
 
     def __safe_text(self, ctx, func: str = "getText", default="") -> str:
         if ctx is None:

@@ -66,7 +66,7 @@ methodDeclaration:
         ',' parameterList
     )? ')' ('=>' returnType)? (block | '=' expression ';');
 
-returnType: 'Unit' | trueType;
+returnType: 'Unit' | typeExpression;
 
 parameterList:
     IDENTIFIER ':' typeExpression (
@@ -168,18 +168,11 @@ expression:
         | '%='
     ) expression;
 
-// referenceExpression: (IDENTIFIER | 'self' | 'super') '.' (
-//         IDENTIFIER
-//         | functionCall
-//         | referenceExpression
-//     );
+referenceExpression:
+    referencePrimary
+    | referenceExpression '.' (IDENTIFIER | functionCall);
 
-referenceExpression: (
-        IDENTIFIER
-        | 'self'
-        | 'super'
-        | functionCall
-    ) ('.' (IDENTIFIER | functionCall))*;
+referencePrimary: IDENTIFIER | 'self' | 'super' | functionCall;
 
 primary: '(' expression ')' | literal | referenceExpression;
 
@@ -207,23 +200,6 @@ floatLiteral: FLOAT_LITERAL | HEX_FLOAT_LITERAL;
 stringLiteral: STRING_LITERAL | INTERP_STRING_LITERAL;
 
 //
-// Types
-//
-
-trueType: '(' trueType ')' | typeExpression | functionType;
-
-//
-// Function Types
-//
-
-functionType: functionTypePart ('->' functionTypePart)+;
-
-functionTypePart: typeExpression | innerFunctionType;
-
-innerFunctionType:
-    '(' functionTypePart ('->' functionTypePart)+ ')';
-
-//
 // Type Expressions
 //
 
@@ -231,7 +207,10 @@ typeExpression:
     typeName
     | '(' typeExpression ')'
     | typeExpression bop = '&' typeExpression
-    | typeExpression bop = '|' typeExpression;
+    | typeExpression bop = '|' typeExpression
+    | typeExpression (bop = '->' typeExpression)+;
+
+typeExpressionList: typeExpression (',' typeExpression)*;
 
 intersectionType:
     typeName
@@ -245,9 +224,7 @@ unionType: typeName | unionType '|' unionType;
 
 typeName: IDENTIFIER typeArguments? typeConstraints?;
 
-trueTypeList: trueType (',' trueType)*;
-
-typeArguments: '<' trueTypeList '>';
+typeArguments: '<' typeExpressionList '>';
 
 typeConstraints: '[' /* TODO */ ']';
 

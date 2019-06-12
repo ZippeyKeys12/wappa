@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from functools import lru_cache
-from typing import Iterable, List, Optional, Tuple
+from typing import Iterable, List, Optional, Tuple, Any
 
 import llvmlite.ir as ir
 
@@ -170,9 +170,7 @@ AnyType = WappaType("Any")
 NilType = WappaType("Nil")
 
 
-NumberType = WappaType("Number", supertypes=[AnyType])
-
-DoubleType = WappaType("Double", ir.DoubleType(), supertypes=[NumberType])
+DoubleType = WappaType("Double", ir.DoubleType(), supertypes=[AnyType])
 FloatType = WappaType("Float", ir.FloatType(), supertypes=[DoubleType])
 
 LongType = WappaType("Long", ir.IntType(64), supertypes=[FloatType])
@@ -195,7 +193,10 @@ UnitType = WappaType("Unit", ir.VoidType(), supertypes=[AnyType])
 
 NothingType = WappaType("Nothing")
 
-PrimitiveTypes = [IntType, DoubleType, StringType, BoolType, NilType]
+NumericTypes = [DoubleType, FloatType, LongType, IntType, ShortType, ByteType]
+
+PrimitiveTypes = [StringType, BoolType, NilType]
+PrimitiveTypes.extend(NumericTypes)
 
 
 class TypeType(WappaType):
@@ -248,3 +249,7 @@ class UnionType(WappaType):
             ret ^= stype.__hash__()
 
         return ret ^ "intersection".__hash__()
+
+
+def make_constant(typ: WappaType, constant: Any) -> ir.Constant:
+    return ir.Constant(typ.ir_type, constant)

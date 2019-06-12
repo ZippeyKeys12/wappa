@@ -35,9 +35,9 @@ class WappaType:
 
         return False
 
-    def get_member(self, tok: Token, ID: str) -> Symbol:
+    def get_symbol(self, tok: Token, ID: str) -> Symbol:
         raise NotImplementedError(
-            "'get_member' not implemented for {}".format(type(self)))
+            "'get_symbol' not implemented for {}".format(type(self)))
 
     def __eq__(self, value):
         if not isinstance(value, WappaType):

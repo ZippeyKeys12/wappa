@@ -33,16 +33,16 @@ class SymbolTable:
             if self.parent:
                 return self.parent.get_symbol(ID)
 
-    def get_element(self, ID: str) -> Optional[ir.Value]:
+    def get_elements(self, ID: str) -> Optional[List[str]]:
         try:
             return self.element_table[ID]
         except KeyError:
             if self.parent:
-                return self.parent.get_element(ID)
+                return self.parent.get_elements(ID)
 
-    def get_function(self, ID: str) -> Optional[ir.Value]:
+    def get_functions(self, ID: str) -> Optional[Dict[str, ir.Function]]:
         try:
             return self.function_table[ID]
         except KeyError:
             if self.parent:
-                return self.parent.get_function(ID)
+                return self.parent.get_functions(ID)

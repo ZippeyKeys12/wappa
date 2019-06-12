@@ -30,11 +30,11 @@ class Class(WappaType):
         self.parent = parent
         self.modifiers = modifiers
 
-    def get_member(self, tok: Token, ID: str) -> Symbol:
+    def get_symbol(self, tok: Token, ID: str) -> Symbol:
         ret = self.scope.get_symbol(tok, ID, not self.parent)
 
         if not ret and self.parent:
-            return self.parent.get_member(tok, ID)
+            return self.parent.get_symbol(tok, ID)
 
         return ret
 

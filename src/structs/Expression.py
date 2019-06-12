@@ -5,7 +5,8 @@ from typing import TYPE_CHECKING, List, Optional, Tuple
 import llvmlite.ir as ir
 
 from ..gen.Wappa import Token
-from ..TypeSystem import BoolType, DoubleType, IntType, TypeType
+from ..TypeSystem import (BoolType, DoubleType, IntType, TypeType, UnitType,
+                          make_constant, PrimitiveTypes)
 from ..util import WappaException
 from .Field import Field
 from .Type import WappaType
@@ -73,19 +74,23 @@ class Literal(Expression):
 
 
 class Reference(Expression):
-    def __init__(self, tok: Token, ref: Symbol, ID: str):
+    def __init__(self, tok: Token, ref: Symbol, ID: str,
+                 parent: Optional[Reference] = None):
         self.tok = tok
         self.ref = ref
         self.ID = ID
+        self.parent = parent
 
-    def type_of(self) -> Optional[WappaType]:
-        if isinstance(self, WappaType):
-            return self.ref
+    def type_of(self) -> WappaType:
+        ref = self.ref
 
-        if isinstance(self.ref, (Field, Variable)):
-            return self.ref.type_of()
+        if isinstance(ref, WappaType):
+            return ref
 
-        return None
+        if isinstance(ref, (Field, Variable)):
+            return ref.type_of()
+
+        return UnitType
 
     @property
     def ir_type(self) -> Optional[ir.Value]:
@@ -99,7 +104,28 @@ class Reference(Expression):
 
     def compile(self, module: ir.Module, builder: ir.IRBuilder,
                 symbols: SymbolTable) -> ir.Value:
-        return symbols.get_symbol(self.ID)
+        if self.parent is None:
+            return symbols.get_symbol(self.ID)
+
+        else:
+            ret = self.parent.compile(module, builder, symbols)
+            rtype = ret.type
+
+            if isinstance(rtype, ir.PointerType):
+                rtype = rtype.pointee
+
+            if isinstance(rtype, ir.IdentifiedStructType):
+                index = symbols.get_elements(rtype.name).index(self.ID)
+                ret = builder.gep(
+                    ret, [make_constant(IntType, i) for i in (0, index)])
+
+            rtype = ret.type
+
+            if isinstance(rtype, ir.PointerType) and (
+                    rtype.pointee in [i.ir_type for i in PrimitiveTypes]):
+                ret = builder.load(ret)
+
+            return ret
 
 
 class FunctionCallExpression(Expression):
@@ -248,8 +274,6 @@ class BinaryOPExpression(Expression):
 
         exprL = self.exprL.compile(module, builder, symbols)
         exprL_type = self.exprL.type_of()
-
-        print(bop, self.exprL)
 
         exprR = self.exprR.compile(module, builder, symbols)
         exprR_type = self.exprR.type_of()
