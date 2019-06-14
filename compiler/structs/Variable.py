@@ -7,7 +7,8 @@ import llvmlite.ir as ir
 from .Type import WappaType
 
 if TYPE_CHECKING:
-    from ..gen.Wappa import Token
+    from gen.Wappa import Token
+
     from .Scope import Symbol
 
 

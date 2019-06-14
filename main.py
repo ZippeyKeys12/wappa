@@ -2,7 +2,7 @@ import llvmlite.binding as llvm
 from antlr4 import CommonTokenStream, FileStream
 from ctypes import CFUNCTYPE, c_double, c_int, c_bool
 
-from src import Wappa, WappaLexer, WappaVisitor
+from compiler import Wappa, WappaLexer, WappaVisitor
 
 
 def get_func(ee, name: str, *types):

@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any, List, Optional
 
 import llvmlite.ir as ir
 
-from ..gen.Wappa import Token
+from gen.Wappa import Token
 
 if TYPE_CHECKING:
     from .Block import Block

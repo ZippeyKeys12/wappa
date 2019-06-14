@@ -4,7 +4,8 @@ from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union
 
 import llvmlite.ir as ir
 
-from ..gen.Wappa import Token
+from gen.Wappa import Token
+
 from ..util import WappaException
 
 if TYPE_CHECKING:

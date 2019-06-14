@@ -4,7 +4,8 @@ from typing import TYPE_CHECKING, List, Optional, Tuple
 
 import llvmlite.ir as ir
 
-from ..gen.Wappa import Token
+from gen.Wappa import Token
+
 from .Field import Field
 from .Symbols import SymbolTable
 from .Type import WappaType

@@ -7,7 +7,8 @@ import llvmlite.ir as ir
 from ..IDGenerator import IDGenerator
 
 if TYPE_CHECKING:
-    from ..gen.Wappa import Token
+    from gen.Wappa import Token
+
     from ..TypeSystem import TypeSolver
     from .Scope import Symbol
 

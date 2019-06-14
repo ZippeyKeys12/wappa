@@ -4,7 +4,8 @@ from typing import TYPE_CHECKING, Any, List, Optional, Tuple
 
 import llvmlite.ir as ir
 
-from .gen.WappaVisitor import WappaVisitor as BaseVisitor
+from gen.WappaVisitor import WappaVisitor as BaseVisitor
+
 from .structs.Block import Block
 from .structs.Class import Class
 from .structs.Expression import (BinaryOPExpression, Expression,
@@ -27,7 +28,8 @@ from .TypeSystem import (BoolType, DoubleType, IntType, NilType, ObjectType,
 from .util import EXCEPTION_LIST, WappaException
 
 if TYPE_CHECKING:
-    from .gen.Wappa import Token, Wappa
+    from gen.Wappa import Token, Wappa
+
     from .structs.Scope import Symbol
 
 

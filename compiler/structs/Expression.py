@@ -4,9 +4,10 @@ from typing import TYPE_CHECKING, List, Optional, Tuple
 
 import llvmlite.ir as ir
 
-from ..gen.Wappa import Token
-from ..TypeSystem import (BoolType, DoubleType, IntType, TypeType, UnitType,
-                          make_constant, PrimitiveTypes)
+from gen.Wappa import Token
+
+from ..TypeSystem import (BoolType, DoubleType, IntType, PrimitiveTypes,
+                          TypeType, UnitType, make_constant)
 from ..util import WappaException
 from .Field import Field
 from .Type import WappaType
