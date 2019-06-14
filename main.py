@@ -10,7 +10,7 @@ def get_func(ee, name: str, *types):
         ee.get_function_address(name))
 
 
-def main():
+def main(optimize: bool):
     text = FileStream("test.txt")
     lexer = WappaLexer(text)
     tokens = CommonTokenStream(lexer)
@@ -32,6 +32,17 @@ def main():
     llvm.initialize_native_asmprinter()
 
     llvm_module = llvm.parse_assembly(str(module))
+
+    if optimize:
+        builder = llvm.create_pass_manager_builder()
+        builder.inlining_threshold = 2
+        builder.loop_vectorize = True
+        builder.opt_level = 3
+        builder.slp_vectorize = True
+
+        mpm = llvm.create_module_pass_manager()
+        builder.populate(mpm)
+        mpm.run(llvm_module)
 
     tm = llvm.Target.from_default_triple().create_target_machine()
 
@@ -57,4 +68,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    main(True)
