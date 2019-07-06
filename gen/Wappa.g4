@@ -64,7 +64,7 @@ functionDeclaration:
 methodDeclaration:
     functionModifiers 'fun' IDENTIFIER '(' 'self' (
         ',' parameterList
-    )? ')' ('=>' returnType)? (block | '=' expression ';');
+    )? ')' ('->' returnType)? '=' (block | expression ';');
 
 returnType: 'Unit' | typeExpression;
 
@@ -205,10 +205,10 @@ stringLiteral: STRING_LITERAL | INTERP_STRING_LITERAL;
 
 typeExpression:
     typeName
-    | '(' typeExpression ')'
+    | tupleType
     | typeExpression bop = '&' typeExpression
     | typeExpression bop = '|' typeExpression
-    | typeExpression (bop = '->' typeExpression)+;
+    | '(' typeExpressionList? ')' bop = '->' '(' typeExpressionList? ')';
 
 typeExpressionList: typeExpression (',' typeExpression)*;
 
@@ -221,6 +221,8 @@ unionType: typeName | unionType '|' unionType;
 //
 // Type Name
 //
+
+tupleType: '(' typeExpression (',' typeExpression)* ')';
 
 typeName: IDENTIFIER typeArguments? typeConstraints?;
 

@@ -1,8 +1,81 @@
-let - create dynamically-typed variable
-const - label functions without side effects
-      - value can only have const methods called
-val - reference can't change
-var - statically-typed variable
+/* Files only contain ModuleDeclarations
+ *
+*/
 
-class - to make objects of
-object - singleton
+/***********/
+/* Imports */
+/***********/
+
+/* From files */
+import folder.otherFolder.moduleName as diffName; /* Would otherwise be moduleName */
+import folder.otherFolder.[specific, modules as diffName];
+import folder.otherFolder.[...];
+
+/* From modules */
+import moduleName::[...];
+import moduleName::className;
+import moduleName::className.[...];
+
+/***********/
+/* Exports */
+/***********/
+
+/* Inside files */
+export default moduleName;
+export default ModuleDeclaration;
+export moduleName as diffName;
+export [ moduleName as diffName ]
+
+/* Inside module */
+export className; /* Must be public */
+export innerModule::[...];
+
+/***********/
+/* Modules */
+/***********/
+
+module ModuleName using OtherModule1, OtherModule2 {
+    ModuleDeclaration
+    TypeDeclaration
+    FunctionDeclaration
+}
+
+/* Access public members through
+ * `moduleName::memberName`
+ */
+
+/*********/
+/* Types */
+/*********/
+
+type ExampleStruct = struct {
+    
+}
+
+type ExampleClass = class : ParentClass {
+    var MutableField: FieldType = FieldInitializer;
+
+    val ConstantPointerField: FieldType = FieldInitializer;
+
+    let ImmutableField: FieldType = FieldInitializer;
+}
+
+type ExampleTrait = trait {
+
+}
+
+type ExampleInterface = 
+
+/* TODO: Decide between records and shapes */
+type ExampleRecord = record {
+    ImmutableField: FieldType
+}
+
+type ExampleListType = [Int] /* MAYBE: Just do List<Int> - Conflicts with constraints, rn */
+type ExampleArrayType = Int[] /* MAYBE: Should it just be Array<Int>? */
+type ExampleTupleType = (Int, Double)
+
+type ExampleFunctionType = (InputTypes) -> (OutputTypes)
+
+type ExampleUnionType = Int | String;
+type ExampleIntersectionType = Int & String;

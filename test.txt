@@ -1,0 +1,28 @@
+fun aaa() -> Double {
+    return 10.0;
+}
+
+fun sum(a: Int, b: Int) -> Double {
+    return a+b+aaa();
+}
+
+fun eq(a: Double, b: Double) -> Bool {
+    if a == b {
+        return True;
+    } else {
+        return False;
+    }
+}
+
+fun neq(a: Double, b: Double) -> Bool {
+    return a != b;
+}
+
+class A_Class{
+    var x_member: Int;
+    var y_member: Int;
+
+    fun x_function(self, arg_1: Int) -> Int {
+        return self.y_member + arg_1;
+    }
+}
