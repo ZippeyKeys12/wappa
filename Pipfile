@@ -5,7 +5,6 @@ name = "pypi"
 
 [packages]
 "antlr4-python3-runtime" = "*"
-sty = "*"
 llvmlite = "*"
 
 [dev-packages]
@@ -15,7 +14,6 @@ flake8 = "*"
 mypy = "*"
 bandit = "*"
 pytest = "*"
-prospector = "*"
 
 [requires]
 python_version = "3.7"

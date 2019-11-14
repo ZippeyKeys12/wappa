@@ -23,8 +23,8 @@ from .structs.Statement import (DoUntilStatement, DoWhileStatement,
 from .structs.Symbols import SymbolTable
 from .structs.Type import WappaType
 from .structs.Variable import Variable
-from .TypeSystem import (BoolType, DoubleType, IntType, NilType, ObjectType,
-                         PrimitiveTypes, StringType, UnitType)
+from .type_system import (BoolType, DoubleType, IntType, NilType, ObjectType,
+                          PrimitiveTypes, StringType, UnitType)
 from .util import EXCEPTION_LIST, WappaException
 
 if TYPE_CHECKING:
@@ -63,7 +63,7 @@ class WappaVisitor(BaseVisitor):
                 obj.compile(self.module, self.builder, symbols)
 
         for exception in sorted(set(EXCEPTION_LIST), key=lambda x: x[3]):
-            print("{}[{}] - {} at line {}{}".format(*exception))
+            print("[{}] - {} at line {}".format(*exception))
 
         return str(self.module)
 

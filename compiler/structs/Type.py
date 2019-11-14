@@ -9,7 +9,7 @@ from ..IDGenerator import IDGenerator
 if TYPE_CHECKING:
     from gen.Wappa import Token
 
-    from ..TypeSystem import TypeSolver
+    from ..type_system import TypeSolver
     from .Scope import Symbol
 
 
@@ -44,7 +44,7 @@ class WappaType:
         if not isinstance(value, WappaType):
             return False
 
-        return self.is_a(value) and value.is_a(self)
+        return self.__hash__() == value.__hash__()
 
     def __hash__(self):
         return self.ID.__hash__()

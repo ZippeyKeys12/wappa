@@ -1,20 +1,19 @@
 /* Files only contain ModuleDeclarations
  *
-*/
+ */
 
 /***********/
 /* Imports */
 /***********/
 
 /* From files */
+/* TODO: Figure out imports */
+import moduleName;
 import folder.otherFolder.moduleName as diffName; /* Would otherwise be moduleName */
 import folder.otherFolder.[specific, modules as diffName];
-import folder.otherFolder.[...];
 
 /* From modules */
-import moduleName::[...];
-import moduleName::className;
-import moduleName::className.[...];
+import filename;
 
 /***********/
 /* Exports */
@@ -24,58 +23,163 @@ import moduleName::className.[...];
 export default moduleName;
 export default ModuleDeclaration;
 export moduleName as diffName;
-export [ moduleName as diffName ]
+export [ moduleName as diffName ];
 
 /* Inside module */
 export className; /* Must be public */
-export innerModule::[...];
 
 /***********/
 /* Modules */
 /***********/
 
-module ModuleName using OtherModule1, OtherModule2 {
+module ModuleName using OtherModule1, OtherModule2 where
     ModuleDeclaration
     TypeDeclaration
     FunctionDeclaration
-}
+end
 
 /* Access public members through
  * `moduleName::memberName`
  */
 
+/*************/
+/* Metatypes */
+/*************/
+
+$type ExampleMetatype where
+
+end
+
 /*********/
 /* Types */
 /*********/
 
-type ExampleStruct = struct {
-    
-}
+struct ExampleStruct where
+    var MutableField: FieldType = FieldInitializer;
+end
 
-type ExampleClass = class : ParentClass {
+class ExampleClass<ExampleTypeParameters> : ExampleParentClass where
     var MutableField: FieldType = FieldInitializer;
 
-    val ConstantPointerField: FieldType = FieldInitializer;
+    val ConstantPointerField: FieldType = FieldInitializer where
+        get = () -> {
+
+        }
+    end
 
     let ImmutableField: FieldType = FieldInitializer;
-}
 
-type ExampleTrait = trait {
+    fun ExampleFunction: (InputTypes) -> (ReturnType)
+        = (x) -> {
 
-}
+    }
 
-type ExampleInterface = 
+    companion object where
 
-/* TODO: Decide between records and shapes */
-type ExampleRecord = record {
-    ImmutableField: FieldType
-}
+    end
 
-type ExampleListType = [Int] /* MAYBE: Just do List<Int> - Conflicts with constraints, rn */
-type ExampleArrayType = Int[] /* MAYBE: Should it just be Array<Int>? */
-type ExampleTupleType = (Int, Double)
+    companion record where
 
-type ExampleFunctionType = (InputTypes) -> (OutputTypes)
+    end
+end
+
+enum ExampleEnum where
+    ENUM(Args) where
+        /* Anonymous class */
+    end,
+    ENUM2(Args);
+
+    fun __init__: (*Self, ArgsType) -> Unit
+        = (self, args) -> {
+
+    }
+end
+
+trait ExampleTrait where
+    fun ExampleAbstractFunction: (InputTypes) -> (OutputTypes);
+end
+
+impl ExampleTrait for ExampleClass where
+    fun ExampleAbstractFunction
+        = (inputs) -> {
+         
+    }
+end
+
+record ExampleRecord where
+    ImmutableField: FieldType = FieldInitializer
+end
+
+interface ExampleInterface where
+    fun ExampleAbstractFunction: (InputTypes) -> (OutputTypes);
+end
+
+type ExampleTupleType = (Int, Double);
+
+type ExampleFunctionType = InputType -> InputType2 -> OutputType;
 
 type ExampleUnionType = Int | String;
 type ExampleIntersectionType = Int & String;
+
+/***********/
+/* Object */
+/**********/
+
+object ExampleObject : ExampleParentClass(args) where
+    /* Anonymous class */
+end
+
+/****************/
+/* Control Flow */
+/****************/
+
+(if|unless) expr then
+    expr
+elsif
+    expr
+else
+    expr
+end
+
+(while|until) expr then
+    expr
+end
+
+do
+    expr
+(while|until) expr;
+
+switch expr where
+    case value => expr
+    case _ => defaultExpr
+end
+
+for i, j in expr where
+    expr
+end
+
+try
+    expr
+catch ExampleException
+    expr
+finally
+    expr
+end
+
+/***************/
+/* Expressions */
+/***************/
+
+x <| y /* == x(y) */
+x |> y /* == y(x) */
+
+x % y  /* Remainder */
+x %% y /* Modulo */
+
+x ** y /* Exponent */
+
+/* (Type, Type) -> Bool */
+x <: y  /* is subclass */
+x :> y  /* is superclass */
+x <:> y /* is super or subclass */
+x =:= y /* is class */

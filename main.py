@@ -24,8 +24,8 @@ def main(optimize: bool):
     with open("ex/test.ll", "w") as f:
         f.write(module)
 
-    print('=== LLVM IR')
-    print(module)
+    # print('=== LLVM IR')
+    # print(module)
 
     llvm.initialize()
     llvm.initialize_native_target()
@@ -58,10 +58,13 @@ def main(optimize: bool):
             f.write(asm)
 
         print('The result of "sum" is', get_func(
-            ee, 'sum', c_double, c_int, c_int)(17, 42))
+            ee, 'sum', c_int, c_int, c_int)(17, 42))
 
         print('The result of "eq" is', get_func(
             ee, 'eq', c_bool, c_double, c_double)(17, 42))
+
+        print('The result of "eq" is', get_func(
+            ee, 'eq', c_bool, c_double, c_double)(42, 42))
 
         print('The result of "neq" is', get_func(
             ee, 'neq', c_bool, c_double, c_double)(17, 42))

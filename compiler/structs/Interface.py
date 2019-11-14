@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, List, Optional, Tuple
+
 from .Class import Class
-from typing import List, Tuple, Optional, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .Scope import Scope

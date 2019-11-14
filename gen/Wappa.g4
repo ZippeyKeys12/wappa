@@ -19,12 +19,18 @@ classModifiers: visibilityModifier? inheritanceModifier?;
 
 classParentDeclaration: 'extends' typeName;
 
-classInterfaceDeclaration: 'implements' interfaceSpecifierList;
+classTraitDeclaration: 'implements' traitSpecifierList;
+
+traitSpecifierList: traitSpecifier (',' traitSpecifier)*;
+
+traitSpecifier: typeName ('by' functionCall);
+
+classInterfaceDeclaration: 'fits' interfaceSpecifierList;
 
 interfaceSpecifierList:
     interfaceSpecifier (',' interfaceSpecifier)*;
 
-interfaceSpecifier: intersectionType (BY functionCall)?;
+interfaceSpecifier: intersectionType ('by' functionCall)?;
 
 innerConstructorCallList:
     innerConstructorCall (',' innerConstructorCall)*;
@@ -39,7 +45,7 @@ innerConstructorCall: functionCall;
 //         '=' variableInitializer
 //     )?;
 
-classBlock: '{' memberDeclaration* '}' | ';';
+classBlock: 'where' memberDeclaration* 'end' | ';';
 
 memberDeclaration: fieldDeclaration | methodDeclaration;
 
@@ -54,7 +60,7 @@ fieldDeclaration:
 //////////////
 
 functionModifiers:
-    immutable = 'const'? override = 'override'? visibilityModifier? inheritanceModifier?;
+    override = 'override'? immutable = 'const'? visibilityModifier? inheritanceModifier?;
 
 functionDeclaration:
     functionModifiers 'fun' IDENTIFIER '(' parameterList? ')' (
@@ -64,7 +70,7 @@ functionDeclaration:
 methodDeclaration:
     functionModifiers 'fun' IDENTIFIER '(' 'self' (
         ',' parameterList
-    )? ')' ('->' returnType)? '=' (block | expression ';');
+    )? ')' ('=>' returnType)? (block | '=' expression ';');
 
 returnType: 'Unit' | typeExpression;
 
@@ -102,7 +108,7 @@ variableInitializer: expression;
 // Expression / Statement //
 ////////////////////////////
 
-block: '{' statement* '}';
+block: 'where' statement* 'end';
 
 statement:
     blockLabel = block
@@ -205,10 +211,12 @@ stringLiteral: STRING_LITERAL | INTERP_STRING_LITERAL;
 
 typeExpression:
     typeName
-    | tupleType
+    | '(' typeExpression ')'
     | typeExpression bop = '&' typeExpression
     | typeExpression bop = '|' typeExpression
-    | '(' typeExpressionList? ')' bop = '->' '(' typeExpressionList? ')';
+    | typeExpression (bop = '*' typeExpression)+
+    | '(' input_types = typeExpressionList? ')' bop = '->' '(' output_types = typeExpressionList?
+        ')';
 
 typeExpressionList: typeExpression (',' typeExpression)*;
 
@@ -221,8 +229,6 @@ unionType: typeName | unionType '|' unionType;
 //
 // Type Name
 //
-
-tupleType: '(' typeExpression (',' typeExpression)* ')';
 
 typeName: IDENTIFIER typeArguments? typeConstraints?;
 

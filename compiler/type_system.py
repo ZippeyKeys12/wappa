@@ -193,7 +193,12 @@ UnitType = WappaType("Unit", ir.VoidType(), supertypes=[AnyType])
 
 NothingType = WappaType("Nothing")
 
-NumericTypes = [DoubleType, FloatType, LongType, IntType, ShortType, ByteType]
+IntTypes = [LongType, IntType, ShortType, ByteType]
+FloatTypes = [DoubleType, FloatType]
+
+NumericTypes = []
+NumericTypes.extend(IntTypes)
+NumericTypes.extend(FloatTypes)
 
 PrimitiveTypes = [StringType, BoolType, NilType]
 PrimitiveTypes.extend(NumericTypes)
